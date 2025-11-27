@@ -553,8 +553,10 @@ class Kivg:
             fill_rgba = hex_to_rgba(fill_arg)
             fill_color = color_to_0_1_range(fill_rgba)
         else:
-            # Assume it's already an RGBA tuple
-            if all(c <= 1.0 for c in fill_arg[:3]):
+            # Assume it's already an RGBA tuple - check length first
+            if len(fill_arg) < 3:
+                fill_color = [0, 0, 0, 1.0]  # Default black
+            elif all(c <= 1.0 for c in fill_arg[:3]):
                 fill_color = list(fill_arg)
                 if len(fill_color) == 3:
                     fill_color.append(1.0)
@@ -570,7 +572,10 @@ class Kivg:
                 stroke_rgba = hex_to_rgba(stroke_arg)
                 stroke_color = color_to_0_1_range(stroke_rgba)
             else:
-                if all(c <= 1.0 for c in stroke_arg[:3]):
+                # Check length first to avoid IndexError
+                if len(stroke_arg) < 3:
+                    stroke_color = None  # Invalid color
+                elif all(c <= 1.0 for c in stroke_arg[:3]):
                     stroke_color = list(stroke_arg)
                     if len(stroke_color) == 3:
                         stroke_color.append(1.0)

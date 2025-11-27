@@ -7,7 +7,6 @@ import numpy as np
 from typing import List, Tuple, Dict, Any, Optional
 
 from ..core.canvas import OpenCVCanvas
-from ..color_utils import normalize_color
 
 
 class TextRenderer:
@@ -26,13 +25,6 @@ class TextRenderer:
         '700': 2,
         '800': 2,
         '900': 3
-    }
-    
-    # Map SVG text-anchor to OpenCV horizontal alignment
-    TEXT_ANCHOR_MAP = {
-        'start': 'left',
-        'middle': 'center',
-        'end': 'right'
     }
     
     # Available OpenCV fonts (limited selection)
@@ -77,13 +69,12 @@ class TextRenderer:
         return base_font
     
     @staticmethod
-    def calculate_font_scale(font_size: float, target_height: float = None) -> float:
+    def calculate_font_scale(font_size: float) -> float:
         """
         Calculate OpenCV font scale from SVG font size.
         
         Args:
             font_size: SVG font size in pixels
-            target_height: Target text height (optional)
             
         Returns:
             OpenCV font scale value

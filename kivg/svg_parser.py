@@ -24,7 +24,8 @@ def _parse_length(value: str) -> Optional[float]:
     
     # Remove common units and parse the numeric value
     value = value.strip()
-    match = re.match(r'^([\d.]+)\s*(px|pt|em|rem|%)?$', value, re.IGNORECASE)
+    # Match valid decimal numbers (with optional decimal point and digits)
+    match = re.match(r'^(\d*\.?\d+)\s*(px|pt|em|rem|%)?$', value, re.IGNORECASE)
     if match:
         try:
             num = float(match.group(1))
