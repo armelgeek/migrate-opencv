@@ -42,7 +42,7 @@ class Kivg:
     """
 
     def __init__(self, width: int = 512, height: int = 512,
-                 background: Tuple[int, int, int, int] = (255, 255, 255, 255)):
+                 background: Tuple[int, int, int, int] = (0, 0, 0, 0)):
         """
         Initialize the Kivg renderer.
         
