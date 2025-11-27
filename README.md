@@ -171,7 +171,7 @@ kivg.save_animation("svg_text_animation.mp4", fps=30)
 - **duration** : *Total animation duration in seconds*. Defaults to `1.0`
 - **fps** : *Frames per second for animation*. Defaults to `30`
 - **hand_draw** : *Whether to show a hand writing the text (whiteboard style)*. Defaults to `False`
-- **hand_image** : *Path to custom hand image (PNG with transparency)*. Defaults to built-in hand
+- **hand_image** : *Path to custom hand image (PNG file with transparency support)*. Defaults to built-in hand
 - **hand_scale** : *Scale factor for hand image*. Defaults to `0.30`
 - **hand_offset** : *Offset (x, y) from drawing point to position hand tip*. Defaults to `(-15, -140)`
 
