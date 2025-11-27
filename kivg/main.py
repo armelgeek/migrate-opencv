@@ -91,9 +91,12 @@ class Kivg:
         ShapeRenderer.render_mesh(self.canvas, self.widget, shapes, color, "mesh_opacity")
 
     def fill_up_shapes(self, *args) -> None:
-        """Fill all shapes in the current SVG file."""
+        """Fill all shapes in the current SVG file, skipping those with fill='none'."""
         for id_, closed_paths in self.closed_shapes.items():
             color = self.closed_shapes[id_]["color"]
+            # Skip shapes with transparent fill (fill="none" in SVG)
+            if len(color) >= 4 and color[3] == 0:
+                continue  # Don't fill transparent shapes
             self.fill_up(closed_paths[id_ + "shapes"], color)
     
     def fill_up_shapes_anim(self, shapes: List[Tuple[List[float], List[float]]], *args) -> None:
