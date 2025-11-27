@@ -14,7 +14,7 @@ class PathRenderer:
     @staticmethod
     def update_canvas(canvas: OpenCVCanvas, widget: Any, 
                       path_elements: List, default_color: Tuple[int, int, int, int] = (0, 0, 0, 255),
-                      default_width: int = 2) -> None:
+                      default_width: int = 1) -> None:
         """
         Update the canvas with the current path elements.
         
@@ -25,8 +25,6 @@ class PathRenderer:
             default_color: Default RGBA color for lines without stroke attribute
             default_width: Default width for lines without stroke-width attribute
         """
-        canvas.clear()
-        
         line_count = 0
         bezier_count = 0
         

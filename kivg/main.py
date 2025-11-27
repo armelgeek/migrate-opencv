@@ -42,7 +42,7 @@ class Kivg:
     """
 
     def __init__(self, width: int = 512, height: int = 512,
-                 background: Tuple[int, int, int, int] = (255, 255, 255, 255)):
+                 background: Tuple[int, int, int, int] = (0, 0, 0, 0)):
         """
         Initialize the Kivg renderer.
         
@@ -60,7 +60,7 @@ class Kivg:
         
         # Default settings
         self._fill = True
-        self._line_width = 2
+        self._line_width = 1  # Thin stroke for smooth rendering
         self._line_color = (0, 0, 0, 255)  # RGBA 0-255
         self._animation_duration = 0.02
         self._previous_svg_file = ""

@@ -17,9 +17,11 @@ class ShapeRenderer:
     def render_shapes(canvas: OpenCVCanvas, shapes: List[List[float]], 
                      color: Tuple[int, int, int, int], opacity: float = 1.0) -> None:
         """
-        Render filled shapes onto the canvas.
+        Render filled shapes onto the canvas with hole support.
         
         OpenCV's fillPoly handles tessellation automatically for concave polygons.
+        When multiple shapes are passed, they are rendered together to support holes
+        (inner shapes with opposite winding become cutouts).
         
         Args:
             canvas: OpenCVCanvas to draw on
@@ -31,11 +33,19 @@ class ShapeRenderer:
         final_alpha = int(color[3] * opacity)
         final_color = (color[0], color[1], color[2], final_alpha)
         
+        # Convert all shapes to point lists
+        contours = []
         for shape in shapes:
             if len(shape) >= 6:  # At least 3 points (6 values)
-                # Convert flat list to points
                 points = ShapeRenderer._flat_to_points(shape)
-                canvas.fill_polygon(points, final_color)
+                contours.append(points)
+        
+        if len(contours) > 1:
+            # Multiple contours - use fill with holes support
+            canvas.fill_polygons_with_holes(contours, final_color)
+        elif len(contours) == 1:
+            # Single contour - use simple fill
+            canvas.fill_polygon(contours[0], final_color)
     
     @staticmethod
     def _flat_to_points(flat_list: List[float]) -> List[Tuple[int, int]]:

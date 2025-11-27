@@ -31,8 +31,8 @@ def main():
     svg_files = [f for f in os.listdir(icons_dir) if f.endswith('.svg')]
     print(f"Found {len(svg_files)} SVG files in {icons_dir}")
     
-    # Create a Kivg renderer
-    kivg = Kivg(width=256, height=256, background=(255, 255, 255, 255))
+    # Create a Kivg renderer with transparent background
+    kivg = Kivg(width=256, height=256, background=(0, 0, 0, 0))
     
     # Render each SVG file
     for svg_file in svg_files[:5]:  # Process first 5 files as demo
