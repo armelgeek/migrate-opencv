@@ -81,6 +81,36 @@ kivg.save_gif("animation.gif", fps=30)
 - **line_color** : *Color of the path stroke in RGBA format (0-255)*. Defaults to `(0, 0, 0, 255)`
 - **dur** : *Duration of each animation step in seconds*. Defaults to `0.02`
 - **fps** : *Frames per second for animation*. Defaults to `30`
+- **hand_draw** : *Whether to show a hand drawing the strokes (whiteboard style)*. Defaults to `False`
+- **hand_image** : *Path to custom hand image (PNG with transparency)*. Defaults to built-in hand
+- **hand_scale** : *Scale factor for hand image*. Defaults to `0.15`
+- **hand_offset** : *Offset (x, y) from drawing point to position hand tip*. Defaults to `(-50, -120)`
+
+### Hand Drawing Animation (Whiteboard Style)
+
+Create VideoScribe-style whiteboard animations with a hand that follows the stroke:
+
+```python
+from kivg import Kivg
+
+kivg = Kivg(width=512, height=512, background=(255, 255, 255, 255))
+
+# Draw with hand animation
+frames = kivg.draw(
+    "logo.svg",
+    animate=True,
+    fill=True,
+    fps=30,
+    hand_draw=True,           # Enable hand drawing
+    hand_scale=0.2,           # Adjust hand size
+    hand_offset=(-60, -140)   # Position hand tip relative to stroke
+)
+
+# Save as GIF or video
+kivg.save_gif("whiteboard_animation.gif", fps=15)
+```
+
+The hand follows the stroke during drawing and naturally disappears when the fill animation starts.
 
 ### Important Notes:
 - Fill color only works if it's in hex format inside `<path>` tag
@@ -169,6 +199,12 @@ Few links that I found useful for modifying few svg files in order to work with 
     Useful for cleaning up and optimizing SVG files to ensure compatibility.
 
 ## Changelog
+
+**v2.1 (Hand Drawing Animation)**
+* Added whiteboard-style hand drawing animation (VideoScribe-like)
+* Hand follows the stroke during drawing and disappears during fill
+* Configurable hand image, scale, and offset
+* New parameters: `hand_draw`, `hand_image`, `hand_scale`, `hand_offset`
 
 **v2.0 (OpenCV Migration)**
 * Migrated from Kivy to OpenCV for headless rendering
