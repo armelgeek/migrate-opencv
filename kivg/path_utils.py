@@ -1,6 +1,8 @@
 """
 Path utilities for Kivg.
-Contains functions to convert SVG paths to Kivy-compatible coordinates.
+Contains functions to convert SVG paths to OpenCV-compatible coordinates.
+Note: OpenCV and SVG share the same coordinate system (Y increases downward),
+so no Y-axis inversion is needed (unlike Kivy).
 """
 from typing import Tuple, List, Union, Callable
 import math
@@ -9,7 +11,7 @@ from svg.path.path import Line, CubicBezier
 def transform_x(x_pos: float, widget_x: float, widget_width: float, 
                svg_width: float, svg_file: str) -> float:
     """
-    Transform an X coordinate from SVG to Kivy coordinate system.
+    Transform an X coordinate from SVG to OpenCV coordinate system.
     
     Args:
         x_pos: SVG x coordinate
@@ -21,7 +23,7 @@ def transform_x(x_pos: float, widget_x: float, widget_width: float,
     Returns:
         Transformed x coordinate
     """
-    # Special handling for Kivy SVG icons
+    # Special handling for Kivy SVG icons (legacy compatibility)
     if "kivy" in svg_file:
         return widget_x + (widget_width * (x_pos / 10) / svg_width)
     return widget_x + widget_width * x_pos / svg_width
@@ -29,7 +31,10 @@ def transform_x(x_pos: float, widget_x: float, widget_width: float,
 def transform_y(y_pos: float, widget_y: float, widget_height: float, 
                svg_height: float, svg_file: str) -> float:
     """
-    Transform a Y coordinate from SVG to Kivy coordinate system.
+    Transform a Y coordinate from SVG to OpenCV coordinate system.
+    
+    Note: OpenCV has the same coordinate system as SVG (Y increases downward),
+    so no inversion is needed.
     
     Args:
         y_pos: SVG y coordinate
@@ -41,21 +46,22 @@ def transform_y(y_pos: float, widget_y: float, widget_height: float,
     Returns:
         Transformed y coordinate
     """
-    # Special handling for Kivy SVG icons
+    # Special handling for Kivy SVG icons (legacy compatibility)
     if "kivy" in svg_file:
         return widget_y + (widget_height * (y_pos / 10) / svg_height)
-    return widget_y + widget_height * (svg_height - y_pos) / svg_height
+    # OpenCV has same coordinate system as SVG - no Y inversion needed
+    return widget_y + widget_height * y_pos / svg_height
 
 def transform_point(complex_point: complex, widget_size: Tuple[float, float], 
                    widget_pos: Tuple[float, float], svg_size: Tuple[float, float], 
                    svg_file: str) -> List[float]:
     """
-    Transform a complex point from SVG to Kivy coordinate system.
+    Transform a complex point from SVG to OpenCV coordinate system.
     
     Args:
         complex_point: SVG point as complex number
-        widget_size: (width, height) of widget
-        widget_pos: (x, y) of widget
+        widget_size: (width, height) of widget/canvas
+        widget_pos: (x, y) position of widget/canvas
         svg_size: (width, height) of SVG
         svg_file: SVG file path
         
@@ -75,12 +81,12 @@ def bezier_points(bezier: CubicBezier, widget_size: Tuple[float, float],
                  widget_pos: Tuple[float, float], svg_size: Tuple[float, float], 
                  svg_file: str) -> List[float]:
     """
-    Convert a CubicBezier to Kivy-compatible bezier points.
+    Convert a CubicBezier to OpenCV-compatible bezier points.
     
     Args:
         bezier: CubicBezier object
-        widget_size: (width, height) of widget
-        widget_pos: (x, y) of widget
+        widget_size: (width, height) of widget/canvas
+        widget_pos: (x, y) position of widget/canvas
         svg_size: (width, height) of SVG
         svg_file: SVG file path
         
@@ -98,12 +104,12 @@ def line_points(line: Line, widget_size: Tuple[float, float],
                widget_pos: Tuple[float, float], svg_size: Tuple[float, float], 
                svg_file: str) -> List[float]:
     """
-    Convert a Line to Kivy-compatible line points.
+    Convert a Line to OpenCV-compatible line points.
     
     Args:
         line: Line object
-        widget_size: (width, height) of widget
-        widget_pos: (x, y) of widget
+        widget_size: (width, height) of widget/canvas
+        widget_pos: (x, y) position of widget/canvas
         svg_size: (width, height) of SVG
         svg_file: SVG file path
         
