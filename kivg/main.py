@@ -540,6 +540,10 @@ class Kivg:
             opacity: Opacity (0-1)
             fps: Frames per second for animation (default: 30)
             duration: Total animation duration in seconds (default: 1.0)
+            hand_draw: Whether to show a hand drawing the text (bool)
+            hand_image: Path to custom hand image (str, optional)
+            hand_scale: Scale factor for hand image (float, default 0.30)
+            hand_offset: Offset (x, y) from drawing point (tuple, default (-15, -140))
             
         Returns:
             List of animation frames if animate=True, None otherwise
@@ -607,9 +611,26 @@ class Kivg:
         fps = kwargs.get('fps', 30)
         duration = kwargs.get('duration', 1.0)
         
+        # Hand drawing parameters
+        hand_draw = kwargs.get('hand_draw', False)
+        hand_image = kwargs.get('hand_image', None)
+        hand_scale = kwargs.get('hand_scale', 0.30)
+        hand_offset = kwargs.get('hand_offset', (-15, -140))
+        
         if animate:
+            # Set up hand overlay if enabled
+            hand_overlay = None
+            if hand_draw:
+                hand_overlay = HandOverlay(
+                    hand_image_path=hand_image,
+                    scale=hand_scale,
+                    offset=hand_offset
+                )
+            
             # Generate character-by-character animation frames
-            frames = self._generate_text_animation_frames(text_data, fps, duration)
+            frames = self._generate_text_animation_frames(
+                text_data, fps, duration, hand_overlay
+            )
             self._frames = frames
             return frames
         else:
@@ -637,6 +658,10 @@ class Kivg:
             duration: Total animation duration in seconds (default: 2.0)
             anim_type: Animation type - 'seq' for sequential (one text at a time),
                        'par' for parallel (all texts together)
+            hand_draw: Whether to show a hand drawing the text (bool)
+            hand_image: Path to custom hand image (str, optional)
+            hand_scale: Scale factor for hand image (float, default 0.30)
+            hand_offset: Offset (x, y) from drawing point (tuple, default (-15, -140))
             
         Returns:
             List of animation frames if animate=True, None otherwise
@@ -647,6 +672,12 @@ class Kivg:
         fps = kwargs.get('fps', 30)
         duration = kwargs.get('duration', 2.0)
         anim_type = kwargs.get('anim_type', 'seq')
+        
+        # Hand drawing parameters
+        hand_draw = kwargs.get('hand_draw', False)
+        hand_image = kwargs.get('hand_image', None)
+        hand_scale = kwargs.get('hand_scale', 0.30)
+        hand_offset = kwargs.get('hand_offset', (-15, -140))
         
         # Parse text elements from SVG
         svg_size, text_elements = parse_text_elements(svg_file)
@@ -659,8 +690,17 @@ class Kivg:
         scale_y = self.height / svg_size[1] if svg_size[1] > 0 else 1.0
         
         if animate:
+            # Set up hand overlay if enabled
+            hand_overlay = None
+            if hand_draw:
+                hand_overlay = HandOverlay(
+                    hand_image_path=hand_image,
+                    scale=hand_scale,
+                    offset=hand_offset
+                )
+            
             frames = self._generate_svg_text_animation_frames(
-                text_elements, scale_x, scale_y, fps, duration, anim_type
+                text_elements, scale_x, scale_y, fps, duration, anim_type, hand_overlay
             )
             self._frames = frames
             return frames
@@ -677,7 +717,8 @@ class Kivg:
             return None
     
     def _generate_text_animation_frames(self, text_data: Dict[str, Any],
-                                         fps: int, duration: float) -> List[np.ndarray]:
+                                         fps: int, duration: float,
+                                         hand_overlay: Optional[HandOverlay] = None) -> List[np.ndarray]:
         """
         Generate animation frames for a single text element.
         
@@ -685,6 +726,7 @@ class Kivg:
             text_data: Text element data dictionary
             fps: Frames per second
             duration: Total animation duration
+            hand_overlay: Optional HandOverlay instance for hand drawing effect
             
         Returns:
             List of frame images as numpy arrays
@@ -711,14 +753,32 @@ class Kivg:
                 char_reveal=char_reveal
             )
             
-            frames.append(self.canvas.get_image())
+            # Get the current frame image
+            frame_image = self.canvas.get_image()
+            
+            # Add hand overlay if enabled and animation is in progress
+            if (hand_overlay is not None and hand_overlay.is_loaded 
+                and char_reveal < total_chars):
+                # Get the position of the current character being drawn
+                hand_pos = TextRenderer.get_char_position(
+                    text_data, char_reveal,
+                    scale_x=1.0, scale_y=1.0,
+                    offset_x=0, offset_y=0
+                )
+                if hand_pos is not None:
+                    frame_image = hand_overlay.overlay_at_position(
+                        frame_image, hand_pos[0], hand_pos[1]
+                    )
+            
+            frames.append(frame_image)
         
         return frames
     
     def _generate_svg_text_animation_frames(self, text_elements: List[Dict[str, Any]],
                                              scale_x: float, scale_y: float,
                                              fps: int, duration: float,
-                                             anim_type: str) -> List[np.ndarray]:
+                                             anim_type: str,
+                                             hand_overlay: Optional[HandOverlay] = None) -> List[np.ndarray]:
         """
         Generate animation frames for multiple text elements from SVG.
         
@@ -729,6 +789,7 @@ class Kivg:
             fps: Frames per second
             duration: Total animation duration
             anim_type: Animation type ('seq' or 'par')
+            hand_overlay: Optional HandOverlay instance for hand drawing effect
             
         Returns:
             List of frame images as numpy arrays
@@ -749,6 +810,11 @@ class Kivg:
                 # Clear canvas
                 self.canvas.clear()
                 
+                # Track the currently active text element and its char reveal for hand position
+                active_text_data = None
+                active_char_reveal = 0
+                active_total_chars = 0
+                
                 for text_idx, text_data in enumerate(text_elements):
                     text_start = text_idx * duration_per_text
                     text_end = (text_idx + 1) * duration_per_text
@@ -765,6 +831,10 @@ class Kivg:
                         # Text is animating
                         text_progress = (current_time - text_start) / duration_per_text
                         char_reveal = int(text_progress * total_chars)
+                        # Track active text for hand position
+                        active_text_data = text_data
+                        active_char_reveal = char_reveal
+                        active_total_chars = total_chars
                     
                     if char_reveal > 0:
                         TextRenderer.draw_text(
@@ -775,7 +845,25 @@ class Kivg:
                             char_reveal=char_reveal
                         )
                 
-                frames.append(self.canvas.get_image())
+                # Get the current frame image
+                frame_image = self.canvas.get_image()
+                
+                # Add hand overlay if enabled and animation is in progress
+                if (hand_overlay is not None and hand_overlay.is_loaded 
+                    and active_text_data is not None 
+                    and active_char_reveal < active_total_chars):
+                    # Get the position of the current character being drawn
+                    hand_pos = TextRenderer.get_char_position(
+                        active_text_data, active_char_reveal,
+                        scale_x=scale_x, scale_y=scale_y,
+                        offset_x=0, offset_y=0
+                    )
+                    if hand_pos is not None:
+                        frame_image = hand_overlay.overlay_at_position(
+                            frame_image, hand_pos[0], hand_pos[1]
+                        )
+                
+                frames.append(frame_image)
         else:
             # Parallel: animate all text elements together
             for frame_idx in range(num_frames + 1):
@@ -783,6 +871,11 @@ class Kivg:
                 
                 # Clear canvas
                 self.canvas.clear()
+                
+                # Track the last active text element for hand position
+                last_active_text_data = None
+                last_active_char_reveal = 0
+                last_total_chars = 0
                 
                 for text_data in text_elements:
                     text = text_data['text']
@@ -797,7 +890,31 @@ class Kivg:
                             opacity=1.0,
                             char_reveal=char_reveal
                         )
+                    
+                    # Track the last text with animation in progress
+                    if char_reveal < total_chars:
+                        last_active_text_data = text_data
+                        last_active_char_reveal = char_reveal
+                        last_total_chars = total_chars
                 
-                frames.append(self.canvas.get_image())
+                # Get the current frame image
+                frame_image = self.canvas.get_image()
+                
+                # Add hand overlay if enabled and animation is in progress
+                if (hand_overlay is not None and hand_overlay.is_loaded 
+                    and last_active_text_data is not None 
+                    and last_active_char_reveal < last_total_chars):
+                    # Get the position of the current character being drawn
+                    hand_pos = TextRenderer.get_char_position(
+                        last_active_text_data, last_active_char_reveal,
+                        scale_x=scale_x, scale_y=scale_y,
+                        offset_x=0, offset_y=0
+                    )
+                    if hand_pos is not None:
+                        frame_image = hand_overlay.overlay_at_position(
+                            frame_image, hand_pos[0], hand_pos[1]
+                        )
+                
+                frames.append(frame_image)
         
         return frames

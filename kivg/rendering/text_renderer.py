@@ -315,3 +315,85 @@ class TextRenderer:
         y = int(text_data['y'] * scale_y)
         
         return (x, y - text_height, text_width, text_height + baseline)
+    
+    @staticmethod
+    def get_char_position(text_data: Dict[str, Any], char_index: int,
+                          scale_x: float = 1.0, scale_y: float = 1.0,
+                          offset_x: float = 0, offset_y: float = 0) -> Optional[Tuple[int, int]]:
+        """
+        Get the position (x, y) of a specific character in the text.
+        
+        Args:
+            text_data: Dictionary with text properties
+            char_index: Index of the character (0-based)
+            scale_x: X scale factor
+            scale_y: Y scale factor
+            offset_x: X offset for positioning
+            offset_y: Y offset for positioning
+            
+        Returns:
+            Tuple (x, y) of the character position, or None if invalid
+        """
+        text = text_data['text']
+        if char_index < 0 or char_index > len(text):
+            return None
+        
+        if char_index == 0:
+            # Return the starting position
+            x = int(text_data['x'] * scale_x + offset_x)
+            y = int(text_data['y'] * scale_y + offset_y)
+            return (x, y)
+        
+        # Get font settings
+        font = TextRenderer.get_opencv_font(
+            text_data.get('font_family', 'sans-serif'),
+            text_data.get('font_style', 'normal')
+        )
+        font_size = text_data.get('font_size', 16)
+        font_scale = TextRenderer.calculate_font_scale(font_size * min(scale_x, scale_y))
+        
+        font_weight = text_data.get('font_weight', 'normal')
+        thickness = TextRenderer.FONT_WEIGHT_MAP.get(str(font_weight), 1)
+        
+        # Calculate base position
+        x = int(text_data['x'] * scale_x + offset_x)
+        y = int(text_data['y'] * scale_y + offset_y)
+        
+        # Calculate full text size for alignment
+        full_text = text_data['text']
+        (full_width, text_height), _ = cv2.getTextSize(
+            full_text, font, font_scale, thickness
+        )
+        
+        # Adjust position based on text-anchor
+        text_anchor = text_data.get('text_anchor', 'start')
+        if text_anchor == 'middle':
+            x -= full_width // 2
+        elif text_anchor == 'end':
+            x -= full_width
+        
+        # Adjust baseline
+        dominant_baseline = text_data.get('dominant_baseline', 'auto')
+        if dominant_baseline in ('middle', 'central'):
+            y += text_height // 2
+        elif dominant_baseline in ('hanging', 'text-before-edge'):
+            y += text_height
+        
+        # Calculate width of text up to char_index
+        letter_spacing = text_data.get('letter_spacing', 0) * scale_x
+        
+        if letter_spacing > 0:
+            # Calculate width character by character
+            current_x = x
+            for i in range(min(char_index, len(text))):
+                char = text[i]
+                (char_width, _), _ = cv2.getTextSize(char, font, font_scale, thickness)
+                current_x += char_width + letter_spacing
+            x = int(current_x)
+        else:
+            # Calculate width of substring
+            substring = text[:char_index]
+            (sub_width, _), _ = cv2.getTextSize(substring, font, font_scale, thickness)
+            x += sub_width
+        
+        return (x, y)
