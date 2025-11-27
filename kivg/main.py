@@ -91,13 +91,22 @@ class Kivg:
         ShapeRenderer.render_mesh(self.canvas, self.widget, shapes, color, "mesh_opacity")
 
     def fill_up_shapes(self, *args) -> None:
-        """Fill all shapes in the current SVG file, skipping those with fill='none'."""
+        """Fill all shapes in the current SVG file, using line_color for transparent fills."""
         for id_, closed_paths in self.closed_shapes.items():
             color = self.closed_shapes[id_]["color"]
-            # Skip shapes with transparent fill (fill="none" in SVG)
+            # For shapes with transparent fill (fill="none" or invalid color),
+            # use the line_color to fill them instead of skipping
             if len(color) >= 4 and color[3] == 0:
-                continue  # Don't fill transparent shapes
-            self.fill_up(closed_paths[id_ + "shapes"], color)
+                # Use line_color for transparent fills
+                fill_color = list(self._line_color)
+                # Convert from 0-255 to 0-1 if needed:
+                if all(c <= 1.0 for c in fill_color[:3]):
+                    pass  # Already in 0-1 range
+                else:
+                    fill_color = [c / 255.0 for c in fill_color]
+                self.fill_up(closed_paths[id_ + "shapes"], fill_color)
+            else:
+                self.fill_up(closed_paths[id_ + "shapes"], color)
     
     def fill_up_shapes_anim(self, shapes: List[Tuple[List[float], List[float]]], *args) -> None:
         """Fill shapes during animation."""
@@ -177,8 +186,12 @@ class Kivg:
                 self.canvas.clear()
                 
                 if fill:
+                    # Draw fills first
                     self.fill_up_shapes()
+                    # Then draw strokes on top
+                    self.update_canvas()
                 else:
+                    # Draw only strokes
                     self.update_canvas()
                 
                 return None
@@ -248,8 +261,11 @@ class Kivg:
                 fill_progress = (current_time - fill_start_time) / 0.4
                 self.widget.mesh_opacity = min(1.0, fill_progress)
                 self.fill_up_shapes()
+                # Always draw strokes on top of fills
+                self.update_canvas()
             elif fill:
                 self.widget.mesh_opacity = 0.0
+                # Draw strokes during animation
                 self.update_canvas()
             else:
                 self.update_canvas()
