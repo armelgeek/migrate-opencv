@@ -129,4 +129,3 @@ dmypy.json
 .pyre/
 
 # Demo output directory
-demo/output/
