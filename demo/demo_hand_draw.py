@@ -18,9 +18,9 @@ frames = kivg.draw(
     dur=0.02
 )
 
-# Sauvegarder l'animation
-kivg.save_gif('output/animation_avec_main.gif', fps=30)
-print('✓ Animation avec main sauvegardée: output/animation_avec_main.gif')
+# Sauvegarder l'animation en MP4
+kivg.save_animation('output/animation_avec_main.mp4', fps=30)
+print('✓ Animation avec main sauvegardée: output/animation_avec_main.mp4')
 
 # 🎨 PERSONNALISER LA MAIN
 # Vous pouvez personnaliser l'apparence de la main:
@@ -30,11 +30,11 @@ frames = kivg.draw(
     animate=True,
     fill=True,
     hand_draw=True,            # Main activée
-    hand_scale=0.2,            # Taille de la main (défaut: 0.15)
-    hand_offset=(-60, -130),   # Position par rapport au trait (x, y)
+    hand_scale=0.35,           # Taille de la main (défaut: 0.30)
+    hand_offset=(-18, -160),   # Position par rapport au trait (x, y)
     # hand_image='path/to/custom_hand.png',  # Image personnalisée (optionnel)
     fps=30
 )
 
-kivg.save_gif('output/discord_avec_main.gif', fps=30)
+kivg.save_animation('output/discord_avec_main.mp4', fps=30)
 print('✓ Animation Discord avec main personnalisée sauvegardée')
