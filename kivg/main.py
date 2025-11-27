@@ -13,6 +13,9 @@ from .drawing.manager import DrawingManager
 from .rendering.path_renderer import PathRenderer
 from .rendering.shape_renderer import ShapeRenderer
 
+# Threshold for considering fill animation complete (handles floating-point precision)
+FILL_COMPLETION_THRESHOLD = 0.99
+
 
 class PropertyHolder:
     """
@@ -262,9 +265,8 @@ class Kivg:
                 self.widget.mesh_opacity = min(1.0, fill_progress)
                 self.fill_up_shapes()
                 # Draw strokes on top of fills only while fill is transitioning
-                # Once fill is complete (fill_progress >= 0.99), remove strokes to show original image
-                # Using 0.99 instead of 1.0 to handle floating-point precision issues
-                if fill_progress < 0.99:
+                # Once fill is complete, remove strokes to show original image
+                if fill_progress < FILL_COMPLETION_THRESHOLD:
                     self.update_canvas()
             elif fill:
                 self.widget.mesh_opacity = 0.0
