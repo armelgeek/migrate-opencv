@@ -152,8 +152,8 @@ class Kivg:
             from_shape_anim: Whether called from shape_animate (bool)
             hand_draw: Whether to show a hand drawing the strokes (bool)
             hand_image: Path to custom hand image (str, optional)
-            hand_scale: Scale factor for hand image (float, default 0.15)
-            hand_offset: Offset (x, y) from drawing point (tuple, default (-50, -120))
+            hand_scale: Scale factor for hand image (float, default 0.30)
+            hand_offset: Offset (x, y) from drawing point (tuple, default (-15, -140))
             
         Returns:
             List of animation frames if animate=True, None otherwise
@@ -170,8 +170,8 @@ class Kivg:
         # Hand drawing parameters
         hand_draw = kwargs.get("hand_draw", False)
         hand_image = kwargs.get("hand_image", None)
-        hand_scale = kwargs.get("hand_scale", 0.15)
-        hand_offset = kwargs.get("hand_offset", (-50, -120))
+        hand_scale = kwargs.get("hand_scale", 0.30)
+        hand_offset = kwargs.get("hand_offset", (-15, -140))
         
         # Update instance attributes
         self._fill = fill

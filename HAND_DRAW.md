@@ -37,8 +37,8 @@ frames = kivg.draw(
     
     # Personnalisation de la main:
     hand_image='path/to/hand.png',  # Image personnalisée (optionnel)
-    hand_scale=0.15,                # Échelle de la main (0.1-0.3)
-    hand_offset=(-50, -120)         # Décalage (x, y) par rapport au trait
+    hand_scale=0.30,                # Échelle de la main (0.2-0.5)
+    hand_offset=(-15, -140)         # Décalage (x, y) par rapport au trait
 )
 ```
 
@@ -48,8 +48,8 @@ frames = kivg.draw(
 |-----------|------|--------|-------------|
 | `hand_draw` | bool | `False` | Active/désactive la main |
 | `hand_image` | str | `None` | Chemin vers image PNG personnalisée |
-| `hand_scale` | float | `0.15` | Taille de la main (0.1 = petit, 0.3 = grand) |
-| `hand_offset` | tuple | `(-50, -120)` | Position (x, y) relative au trait |
+| `hand_scale` | float | `0.30` | Taille de la main (0.2 = petit, 0.5 = grand) |
+| `hand_offset` | tuple | `(-15, -140)` | Position (x, y) relative au trait - positionne la pointe du stylo |
 
 ## Exemples
 
@@ -81,8 +81,8 @@ frames = kivg.draw(
     'demo/icons/discord.svg',
     animate=True,
     hand_draw=True,
-    hand_scale=0.25,        # Main 25% plus grande
-    hand_offset=(-70, -150), # Décalée vers le haut
+    hand_scale=0.35,        # Main 35% de l'original
+    hand_offset=(-18, -160), # Décalée vers le haut
     fps=30
 )
 ```
@@ -96,7 +96,7 @@ frames = kivg.draw(
     animate=True,
     hand_draw=True,
     hand_image='images/ma_main.png',  # Votre image
-    hand_scale=0.2,
+    hand_scale=0.3,
     fps=30
 )
 ```
@@ -123,16 +123,16 @@ La main est positionnée en fonction de:
 
 ```python
 # Tracés larges et rapides
-hand_scale=0.2
-hand_offset=(-60, -140)
+hand_scale=0.35
+hand_offset=(-18, -165)
 
 # Tracés fins et détaillés
-hand_scale=0.12
-hand_offset=(-40, -100)
+hand_scale=0.25
+hand_offset=(-12, -115)
 
-# Texte ou écriture
-hand_scale=0.15
-hand_offset=(-50, -120)  # Défaut, bon pour l'écriture
+# Texte ou écriture (défaut)
+hand_scale=0.30
+hand_offset=(-15, -140)  # Défaut, pointe du stylo suit le trait
 ```
 
 ## Format de l'Image de Main
@@ -168,19 +168,19 @@ Si vous utilisez une image personnalisée (`hand_image`):
 Ajustez `hand_offset`:
 ```python
 # Main trop à droite → diminuer x
-hand_offset=(-80, -120)  # Plus à gauche
+hand_offset=(-25, -140)  # Plus à gauche
 
 # Main trop basse → diminuer y
-hand_offset=(-50, -150)  # Plus haut
+hand_offset=(-15, -160)  # Plus haut
 ```
 
 ### La main est trop grande/petite
 
 Ajustez `hand_scale`:
 ```python
-hand_scale=0.1   # Petite
-hand_scale=0.15  # Moyenne (défaut)
-hand_scale=0.25  # Grande
+hand_scale=0.20  # Petite
+hand_scale=0.30  # Moyenne (défaut)
+hand_scale=0.40  # Grande
 ```
 
 ## Script de Test Complet
@@ -201,8 +201,8 @@ frames = kivg.draw(
     hand_draw=True,
     fps=30
 )
-kivg.save_gif('test_main_defaut.gif', fps=30)
-print("✓ Sauvegardé: test_main_defaut.gif")
+kivg.save_animation('test_main_defaut.mp4', fps=30)
+print("✓ Sauvegardé: test_main_defaut.mp4")
 
 # Test 2: Main personnalisée
 print("Test 2: Main personnalisée...")
@@ -212,12 +212,12 @@ frames = kivg.draw(
     animate=True,
     fill=True,
     hand_draw=True,
-    hand_scale=0.2,
-    hand_offset=(-65, -135),
+    hand_scale=0.35,
+    hand_offset=(-18, -160),
     fps=30
 )
-kivg.save_gif('test_main_custom.gif', fps=30)
-print("✓ Sauvegardé: test_main_custom.gif")
+kivg.save_animation('test_main_custom.mp4', fps=30)
+print("✓ Sauvegardé: test_main_custom.mp4")
 
 print("\n✅ Tests terminés!")
 ```
@@ -235,7 +235,7 @@ kivg.draw(
     'fichier.svg',
     animate=True,
     hand_draw=True,
-    hand_scale=0.18,
-    hand_offset=(-55, -125)
+    hand_scale=0.35,
+    hand_offset=(-18, -155)
 )
 ```
