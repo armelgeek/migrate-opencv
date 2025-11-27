@@ -12,6 +12,7 @@ from .core.animation import Animation
 from .drawing.manager import DrawingManager
 from .rendering.path_renderer import PathRenderer
 from .rendering.shape_renderer import ShapeRenderer
+from .rendering.hand_overlay import HandOverlay
 
 # Threshold for considering fill animation complete (handles floating-point precision)
 FILL_COMPLETION_THRESHOLD = 0.99
@@ -82,6 +83,10 @@ class Kivg:
         
         # Stored animation frames
         self._frames: List[np.ndarray] = []
+        
+        # Hand overlay for whiteboard-style animation
+        self._hand_overlay: Optional[HandOverlay] = None
+        self._hand_draw_enabled = False
 
     def fill_up(self, shapes: List[List[float]], color: List[float]) -> None:
         """
@@ -145,6 +150,10 @@ class Kivg:
             dur: Duration of each animation step (float)
             fps: Frames per second for animation (int)
             from_shape_anim: Whether called from shape_animate (bool)
+            hand_draw: Whether to show a hand drawing the strokes (bool)
+            hand_image: Path to custom hand image (str, optional)
+            hand_scale: Scale factor for hand image (float, default 0.15)
+            hand_offset: Offset (x, y) from drawing point (tuple, default (-50, -120))
             
         Returns:
             List of animation frames if animate=True, None otherwise
@@ -158,12 +167,29 @@ class Kivg:
         from_shape_anim = kwargs.get("from_shape_anim", False)
         anim_type = anim_type if anim_type in ("seq", "par") else "seq"
         
+        # Hand drawing parameters
+        hand_draw = kwargs.get("hand_draw", False)
+        hand_image = kwargs.get("hand_image", None)
+        hand_scale = kwargs.get("hand_scale", 0.15)
+        hand_offset = kwargs.get("hand_offset", (-50, -120))
+        
         # Update instance attributes
         self._fill = fill
         self._line_width = line_width
         self._line_color = line_color
         self._animation_duration = duration
         self.current_svg_file = svg_file
+        
+        # Set up hand overlay if enabled
+        self._hand_draw_enabled = hand_draw and animate
+        if self._hand_draw_enabled:
+            self._hand_overlay = HandOverlay(
+                hand_image_path=hand_image,
+                scale=hand_scale,
+                offset=hand_offset
+            )
+        else:
+            self._hand_overlay = None
         
         # Process SVG if different from previous
         if svg_file != self._previous_svg_file:
@@ -234,6 +260,9 @@ class Kivg:
         else:
             total_duration = max(anim.duration for anim in anim_list)
         
+        # Store the stroke animation duration for hand visibility
+        stroke_duration = total_duration
+        
         # Add time for fill animation if needed
         if fill:
             total_duration += 0.4
@@ -253,13 +282,17 @@ class Kivg:
             current_time = progress * total_duration
             
             # Update animation properties for current time
-            self._update_animation_state(anim_list, current_time, anim_type, initial_values)
+            current_anim_idx = self._update_animation_state(
+                anim_list, current_time, anim_type, initial_values
+            )
             
             # Clear and redraw
             self.canvas.clear()
             
             # Calculate fill opacity
             fill_start_time = total_duration - 0.4 if fill else total_duration
+            is_during_stroke = current_time < stroke_duration
+            
             if fill and current_time >= fill_start_time:
                 fill_progress = (current_time - fill_start_time) / 0.4
                 self.widget.mesh_opacity = min(1.0, fill_progress)
@@ -275,13 +308,85 @@ class Kivg:
             else:
                 self.update_canvas()
             
-            frames.append(self.canvas.get_image())
+            # Get the current frame image
+            frame_image = self.canvas.get_image()
+            
+            # Add hand overlay if enabled and we're during stroke animation
+            if (self._hand_draw_enabled and self._hand_overlay is not None 
+                and self._hand_overlay.is_loaded and is_during_stroke):
+                # Get the current drawing position from the active animation
+                hand_pos = self._get_current_drawing_position(
+                    anim_list, current_anim_idx, anim_type
+                )
+                if hand_pos is not None:
+                    frame_image = self._hand_overlay.overlay_at_position(
+                        frame_image, hand_pos[0], hand_pos[1]
+                    )
+            
+            frames.append(frame_image)
         
         return frames
+    
+    def _get_current_drawing_position(self, anim_list: List[Animation],
+                                      current_anim_idx: int,
+                                      anim_type: str) -> Optional[Tuple[int, int]]:
+        """
+        Get the current drawing position (tip of the stroke being drawn).
+        
+        Args:
+            anim_list: List of animations
+            current_anim_idx: Index of the currently active animation
+            anim_type: Animation type ("seq" or "par")
+            
+        Returns:
+            Tuple (x, y) of the current drawing position, or None
+        """
+        if not anim_list or current_anim_idx < 0:
+            return None
+        
+        if anim_type == "seq":
+            # For sequential animation, get the end point of the current animation
+            if current_anim_idx >= len(anim_list):
+                return None
+            
+            anim = anim_list[current_anim_idx]
+            props = anim.animated_properties
+            
+            # Check for line end points
+            for key in props:
+                if key.endswith("_end_x"):
+                    prefix = key[:-6]  # Remove "_end_x"
+                    x = getattr(self.widget, f"{prefix}_end_x", None)
+                    y = getattr(self.widget, f"{prefix}_end_y", None)
+                    if x is not None and y is not None:
+                        return (int(x), int(y))
+            
+            # Check for bezier end points
+            for key in props:
+                if "bezier" in key and key.endswith("_end_x"):
+                    prefix = key[:-6]  # Remove "_end_x"
+                    x = getattr(self.widget, f"{prefix}_end_x", None)
+                    y = getattr(self.widget, f"{prefix}_end_y", None)
+                    if x is not None and y is not None:
+                        return (int(x), int(y))
+        else:
+            # For parallel animation, find the most active animation
+            if anim_list:
+                anim = anim_list[-1]  # Use the last animation
+                props = anim.animated_properties
+                for key in props:
+                    if key.endswith("_end_x"):
+                        prefix = key[:-6]
+                        x = getattr(self.widget, f"{prefix}_end_x", None)
+                        y = getattr(self.widget, f"{prefix}_end_y", None)
+                        if x is not None and y is not None:
+                            return (int(x), int(y))
+        
+        return None
 
     def _update_animation_state(self, anim_list: List[Animation], 
                                 current_time: float, anim_type: str,
-                                initial_values: Dict[str, Any]) -> None:
+                                initial_values: Dict[str, Any]) -> int:
         """Update widget properties based on animation state at current time.
         
         Args:
@@ -289,14 +394,19 @@ class Kivg:
             current_time: Current time in the animation
             anim_type: Animation type ("seq" or "par")
             initial_values: Dictionary of initial property values
+            
+        Returns:
+            Index of the currently active animation (-1 if none)
         """
+        current_anim_idx = -1
+        
         if anim_type == "seq":
             # Sequential: run animations one after another
             elapsed = 0
             # Track the end values of completed animations
             completed_values = dict(initial_values)
             
-            for anim in anim_list:
+            for idx, anim in enumerate(anim_list):
                 anim_end_time = elapsed + anim.duration
                 
                 if current_time < elapsed:
@@ -304,6 +414,7 @@ class Kivg:
                     break
                 elif current_time >= elapsed and current_time < anim_end_time:
                     # This animation is active
+                    current_anim_idx = idx
                     local_progress = (current_time - elapsed) / anim.duration if anim.duration > 0 else 1.0
                     local_progress = min(1.0, max(0.0, local_progress))
                     t = anim._transition(local_progress)
@@ -322,15 +433,19 @@ class Kivg:
                 elapsed = anim_end_time
         else:
             # Parallel: run all animations at once
-            for anim in anim_list:
+            for idx, anim in enumerate(anim_list):
                 progress = current_time / anim.duration if anim.duration > 0 else 1.0
                 progress = min(1.0, max(0.0, progress))
+                if progress < 1.0:
+                    current_anim_idx = idx
                 t = anim._transition(progress)
                 
                 for key, target in anim.animated_properties.items():
                     start_val = initial_values.get(key, 0)
                     value = start_val + (target - start_val) * t
                     setattr(self.widget, key, value)
+        
+        return current_anim_idx
 
     def save_image(self, path: str) -> None:
         """
