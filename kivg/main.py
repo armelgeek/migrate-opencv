@@ -106,11 +106,12 @@ class Kivg:
         """Update the canvas with the current drawing state."""
         # Convert line color from 0-1 to 0-255 if needed
         if all(c <= 1.0 for c in self._line_color[:3]):
-            line_color = tuple(int(c * 255) for c in self._line_color)
+            default_color = tuple(int(c * 255) for c in self._line_color)
         else:
-            line_color = self._line_color
+            default_color = self._line_color
         
-        PathRenderer.update_canvas(self.canvas, self.widget, self.path, line_color)
+        PathRenderer.update_canvas(self.canvas, self.widget, self.path, 
+                                  default_color, self._line_width)
 
     def draw(self, svg_file: str, animate: bool = False, 
              anim_type: str = "seq", *args, **kwargs) -> Optional[List[np.ndarray]]:

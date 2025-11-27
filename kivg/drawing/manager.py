@@ -32,13 +32,15 @@ class DrawingManager:
         path = []
         closed_shapes = OrderedDict()
         
-        for path_string, id_, clr in path_strings:
+        for path_string, id_, attrs in path_strings:
             move_found = False
             tmp = []
             closed_shapes[id_] = dict()
             closed_shapes[id_][id_ + "paths"] = []
             closed_shapes[id_][id_ + "shapes"] = []  # for drawing meshes
-            closed_shapes[id_]["color"] = clr
+            closed_shapes[id_]["color"] = attrs['fill']
+            closed_shapes[id_]["stroke"] = attrs.get('stroke')
+            closed_shapes[id_]["stroke_width"] = attrs.get('stroke_width')
             
             _path = parse_path(path_string)
             for e in _path:
@@ -97,6 +99,12 @@ class DrawingManager:
                         DrawingManager._setup_line_properties(
                             widget, line_count, lp, animate, line_width
                         )
+                        
+                        # Store stroke information for this line
+                        stroke_color = closed_paths.get("stroke")
+                        stroke_width = closed_paths.get("stroke_width")
+                        setattr(widget, f"line{line_count}_stroke_color", stroke_color)
+                        setattr(widget, f"line{line_count}_stroke_width", stroke_width)
 
                         if animate:
                             anim_list.append(
@@ -119,6 +127,12 @@ class DrawingManager:
                         DrawingManager._setup_bezier_properties(
                             widget, bezier_count, bp, animate, line_width
                         )
+                        
+                        # Store stroke information for this bezier
+                        stroke_color = closed_paths.get("stroke")
+                        stroke_width = closed_paths.get("stroke_width")
+                        setattr(widget, f"bezier{bezier_count}_stroke_color", stroke_color)
+                        setattr(widget, f"bezier{bezier_count}_stroke_width", stroke_width)
 
                         if animate:
                             anim_list.append(

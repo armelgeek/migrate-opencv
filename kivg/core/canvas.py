@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 from typing import Tuple, List, Optional
 
+from ..color_utils import normalize_color, rgba_to_bgra
+
 
 class OpenCVCanvas:
     """Canvas based on OpenCV to replace kivy.graphics.Canvas"""
@@ -44,14 +46,15 @@ class OpenCVCanvas:
             color: RGBA color (0-255 for each component)
             thickness: Line thickness
         """
-        # Convert RGBA to BGRA for OpenCV (BGR channel order + alpha)
-        bgra_color = (color[2], color[1], color[0], color[3])
+        # Normalize and convert color to BGRA for OpenCV
+        rgba = normalize_color(color, input_range='0-255')
+        bgra_color = rgba_to_bgra(rgba)
         
         # Handle alpha blending
-        if color[3] < 255:
+        if rgba[3] < 255:
             overlay = self.image.copy()
             cv2.line(overlay, start, end, bgra_color, thickness, cv2.LINE_AA)
-            alpha = color[3] / 255.0
+            alpha = rgba[3] / 255.0
             cv2.addWeighted(overlay, alpha, self.image, 1 - alpha, 0, self.image)
         else:
             cv2.line(self.image, start, end, bgra_color, thickness, cv2.LINE_AA)
@@ -67,16 +70,19 @@ class OpenCVCanvas:
             thickness: Line thickness
             closed: Whether to close the polyline
         """
-        # Convert RGBA to BGRA for OpenCV (BGR channel order + alpha)
-        bgra_color = (color[2], color[1], color[0], color[3])
+        # Normalize and convert color to BGRA for OpenCV
+        rgba = normalize_color(color, input_range='0-255')
+        bgra_color = rgba_to_bgra(rgba)
         
-        if color[3] < 255:
+        if rgba[3] < 255:
             overlay = self.image.copy()
-            cv2.polylines(overlay, [points], closed, bgra_color, thickness, cv2.LINE_AA)
-            alpha = color[3] / 255.0
+            cv2.polylines(overlay, [points], closed, bgra_color, 
+                         thickness, cv2.LINE_AA)
+            alpha = rgba[3] / 255.0
             cv2.addWeighted(overlay, alpha, self.image, 1 - alpha, 0, self.image)
         else:
-            cv2.polylines(self.image, [points], closed, bgra_color, thickness, cv2.LINE_AA)
+            cv2.polylines(self.image, [points], closed, bgra_color, 
+                         thickness, cv2.LINE_AA)
     
     def draw_bezier(self, start: Tuple[int, int], ctrl1: Tuple[int, int],
                     ctrl2: Tuple[int, int], end: Tuple[int, int],
@@ -109,13 +115,15 @@ class OpenCVCanvas:
             color: RGBA color (0-255 for each component)
         """
         points_array = np.array(points, dtype=np.int32)
-        # Convert RGBA to BGRA for OpenCV (BGR channel order + alpha)
-        bgra_color = (color[2], color[1], color[0], color[3])
         
-        if color[3] < 255:
+        # Normalize and convert color to BGRA for OpenCV
+        rgba = normalize_color(color, input_range='0-255')
+        bgra_color = rgba_to_bgra(rgba)
+        
+        if rgba[3] < 255:
             overlay = self.image.copy()
             cv2.fillPoly(overlay, [points_array], bgra_color)
-            alpha = color[3] / 255.0
+            alpha = rgba[3] / 255.0
             cv2.addWeighted(overlay, alpha, self.image, 1 - alpha, 0, self.image)
         else:
             cv2.fillPoly(self.image, [points_array], bgra_color)

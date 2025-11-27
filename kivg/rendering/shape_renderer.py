@@ -7,6 +7,7 @@ import numpy as np
 from typing import List, Tuple, Any
 
 from ..core.canvas import OpenCVCanvas
+from ..color_utils import normalize_color, apply_opacity
 
 
 class ShapeRenderer:

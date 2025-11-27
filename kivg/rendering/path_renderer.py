@@ -13,7 +13,8 @@ class PathRenderer:
     
     @staticmethod
     def update_canvas(canvas: OpenCVCanvas, widget: Any, 
-                      path_elements: List, line_color: Tuple[int, int, int, int]) -> None:
+                      path_elements: List, default_color: Tuple[int, int, int, int] = (0, 0, 0, 255),
+                      default_width: int = 2) -> None:
         """
         Update the canvas with the current path elements.
         
@@ -21,7 +22,8 @@ class PathRenderer:
             canvas: OpenCVCanvas to draw on
             widget: Widget containing path properties
             path_elements: List of SVG path elements
-            line_color: RGBA color for drawing lines
+            default_color: Default RGBA color for lines without stroke attribute
+            default_width: Default width for lines without stroke-width attribute
         """
         canvas.clear()
         
@@ -31,28 +33,50 @@ class PathRenderer:
         # Draw each path element
         for element in path_elements:
             if isinstance(element, Line):
-                PathRenderer._draw_line(canvas, widget, line_count, line_color)
+                PathRenderer._draw_line(canvas, widget, line_count, default_color, default_width)
                 line_count += 1
             elif isinstance(element, CubicBezier):
-                PathRenderer._draw_bezier(canvas, widget, bezier_count, line_color)
+                PathRenderer._draw_bezier(canvas, widget, bezier_count, default_color, default_width)
                 bezier_count += 1
     
     @staticmethod
     def _draw_line(canvas: OpenCVCanvas, widget: Any, 
-                   line_index: int, color: Tuple[int, int, int, int]) -> None:
+                   line_index: int, default_color: Tuple[int, int, int, int],
+                   default_width: int) -> None:
         """Draw a line element on the canvas."""
+        from ..color_utils import color_0_1_to_0_255
+        
         start_x = int(getattr(widget, f"line{line_index}_start_x"))
         start_y = int(getattr(widget, f"line{line_index}_start_y"))
         end_x = int(getattr(widget, f"line{line_index}_end_x"))
         end_y = int(getattr(widget, f"line{line_index}_end_y"))
-        width = int(getattr(widget, f"line{line_index}_width"))
+        
+        # Get stroke color from SVG attributes or use default
+        stroke_color = getattr(widget, f"line{line_index}_stroke_color", None)
+        if stroke_color is not None:
+            color = color_0_1_to_0_255(stroke_color)
+            if color is None:
+                color = default_color
+        else:
+            color = default_color
+        
+        # Get stroke width from SVG attributes or use default/animated width
+        stroke_width = getattr(widget, f"line{line_index}_stroke_width", None)
+        if stroke_width is not None:
+            width = int(stroke_width)
+        else:
+            # Fall back to animated width or default
+            width = int(getattr(widget, f"line{line_index}_width", default_width))
         
         canvas.draw_line((start_x, start_y), (end_x, end_y), color, width)
     
     @staticmethod
     def _draw_bezier(canvas: OpenCVCanvas, widget: Any, 
-                     bezier_index: int, color: Tuple[int, int, int, int]) -> None:
+                     bezier_index: int, default_color: Tuple[int, int, int, int],
+                     default_width: int) -> None:
         """Draw a bezier curve element on the canvas."""
+        from ..color_utils import color_0_1_to_0_255
+        
         start_x = int(getattr(widget, f"bezier{bezier_index}_start_x"))
         start_y = int(getattr(widget, f"bezier{bezier_index}_start_y"))
         ctrl1_x = int(getattr(widget, f"bezier{bezier_index}_control1_x"))
@@ -61,7 +85,23 @@ class PathRenderer:
         ctrl2_y = int(getattr(widget, f"bezier{bezier_index}_control2_y"))
         end_x = int(getattr(widget, f"bezier{bezier_index}_end_x"))
         end_y = int(getattr(widget, f"bezier{bezier_index}_end_y"))
-        width = int(getattr(widget, f"bezier{bezier_index}_width"))
+        
+        # Get stroke color from SVG attributes or use default
+        stroke_color = getattr(widget, f"bezier{bezier_index}_stroke_color", None)
+        if stroke_color is not None:
+            color = color_0_1_to_0_255(stroke_color)
+            if color is None:
+                color = default_color
+        else:
+            color = default_color
+        
+        # Get stroke width from SVG attributes or use default/animated width
+        stroke_width = getattr(widget, f"bezier{bezier_index}_stroke_width", None)
+        if stroke_width is not None:
+            width = int(stroke_width)
+        else:
+            # Fall back to animated width or default
+            width = int(getattr(widget, f"bezier{bezier_index}_width", default_width))
         
         canvas.draw_bezier(
             (start_x, start_y),
