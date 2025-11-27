@@ -44,7 +44,7 @@ class OpenCVCanvas:
             color: RGBA color (0-255 for each component)
             thickness: Line thickness
         """
-        # Use BGRA color (4 channels) to properly set alpha on RGBA images
+        # Convert RGBA to BGRA for OpenCV (BGR channel order + alpha)
         bgra_color = (color[2], color[1], color[0], color[3])
         
         # Handle alpha blending
@@ -67,7 +67,7 @@ class OpenCVCanvas:
             thickness: Line thickness
             closed: Whether to close the polyline
         """
-        # Use BGRA color (4 channels) to properly set alpha on RGBA images
+        # Convert RGBA to BGRA for OpenCV (BGR channel order + alpha)
         bgra_color = (color[2], color[1], color[0], color[3])
         
         if color[3] < 255:
@@ -109,7 +109,7 @@ class OpenCVCanvas:
             color: RGBA color (0-255 for each component)
         """
         points_array = np.array(points, dtype=np.int32)
-        # Use BGRA color (4 channels) to properly set alpha on RGBA images
+        # Convert RGBA to BGRA for OpenCV (BGR channel order + alpha)
         bgra_color = (color[2], color[1], color[0], color[3])
         
         if color[3] < 255:
