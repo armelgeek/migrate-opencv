@@ -1,20 +1,29 @@
 ## Kivg
-*SVG path drawing and animation support in kivy application*
+*SVG path drawing and animation using OpenCV - Headless rendering without UI dependencies*
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/shashi278/kivg/.github%2Fworkflows%2Fpython-publish.yml) [![Python 3.6](https://img.shields.io/pypi/pyversions/kivymd)](https://www.python.org/downloads/release/python-360/) [![pypi](https://img.shields.io/pypi/v/kivg)](https://pypi.org/project/Kivg/) [![code size](https://img.shields.io/github/languages/code-size/shashi278/svg-anim-kivy)]() [![license](https://img.shields.io/github/license/shashi278/svg-anim-kivy)](https://github.com/shashi278/svg-anim-kivy/blob/main/LICENSE) [![downloads](https://img.shields.io/pypi/dm/kivg)](https://pypi.org/project/Kivg/) ![Pepy Total Downloads](https://img.shields.io/pepy/dt/kivg?label=Total%20Downloads)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/shashi278/kivg/.github%2Fworkflows%2Fpython-publish.yml) [![Python 3.8+](https://img.shields.io/pypi/pyversions/kivg)](https://www.python.org/downloads/) [![pypi](https://img.shields.io/pypi/v/kivg)](https://pypi.org/project/Kivg/) [![code size](https://img.shields.io/github/languages/code-size/shashi278/svg-anim-kivy)]() [![license](https://img.shields.io/github/license/shashi278/svg-anim-kivy)](https://github.com/shashi278/svg-anim-kivy/blob/main/LICENSE) [![downloads](https://img.shields.io/pypi/dm/kivg)](https://pypi.org/project/Kivg/) ![Pepy Total Downloads](https://img.shields.io/pepy/dt/kivg?label=Total%20Downloads)
 
 
 #
 
 ## Features
+
+✅ **Headless Rendering** - No UI or display required  
+✅ **Direct Image Export** - Save to PNG, JPG  
+✅ **Video Export** - Save animations as MP4, AVI  
+✅ **GIF Export** - Create animated GIFs  
+✅ **Lightweight** - Uses opencv-python-headless  
+✅ **Server Ready** - Perfect for backend pipelines, APIs, and Docker
+
 | **Path Drawing & filling** | **Shape Animation** |
 | :-------------: |:-------------:|
 | <img src="https://raw.githubusercontent.com/shashi278/svg-anim-kivy/main/demo/svg_demo.gif" width=300> | <img src="https://raw.githubusercontent.com/shashi278/svg-anim-kivy/main/demo/adv_svg_anim.gif" width=300> |
 
-Now you can take some of the advantages svg offers, in your kivy apps. Those are:
-- [x] Compact file size compare to other formats - reduced asset size
+Now you can take some of the advantages svg offers in your applications:
+- [x] Compact file size compared to other formats - reduced asset size
 - [x] Scalability - Draw them big or small
 - [x] Interactivity - Animations
+- [x] Export to images and videos
 
 #
 
@@ -23,66 +32,61 @@ Now you can take some of the advantages svg offers, in your kivy apps. Those are
 pip install kivg
 ```
 
+For GIF export support:
+```bash
+pip install kivg[gif]
+```
+
 ## Usage Guide
 
-Kivg helps you easily draw and animate SVG files in your Kivy applications.
+Kivg helps you easily draw and animate SVG files with OpenCV.
 
-### Path Drawing and Filling
+### Basic Drawing
 
 ```python
 from kivg import Kivg
 
-s = Kivg(my_widget)
+# Create renderer (512x512 canvas with white background)
+kivg = Kivg(width=512, height=512, background=(255, 255, 255, 255))
 
-# call draw method with a `svg_file` name
-s.draw("github.svg", fill=False, animate=True, anim_type="seq")
+# Draw an SVG file
+kivg.draw("github.svg", fill=True)
+
+# Save to image
+kivg.save_image("output.png")
 ```
 
-#### Parameters:
+### Animation and Export
+
+```python
+from kivg import Kivg
+
+kivg = Kivg(width=512, height=512)
+
+# Draw with animation (returns list of frames)
+frames = kivg.draw("logo.svg", fill=True, animate=True, anim_type="seq", fps=30)
+
+# Save animation as video
+kivg.save_animation("animation.mp4", fps=30)
+
+# Or save as GIF (requires imageio)
+kivg.save_gif("animation.gif", fps=30)
+```
+
+### Parameters for draw():
 - **fill** : *Whether to fill the shape after drawing*. Defaults to `True`
 - **animate** : *Whether to animate drawing*. Defaults to `False`
-- **anim_type** : *Whether to draw in sequence or parallel. Available `"seq"` and `"par"`*. Defaults to `"seq"`
+- **anim_type** : *Animation type - `"seq"` (sequential) or `"par"` (parallel)*. Defaults to `"seq"`
 - **line_width** : *Width of the path stroke*. Defaults to `2`
-- **line_color** : *Color of the path stroke in RGBA format*. Defaults to `[0, 0, 0, 1]`
+- **line_color** : *Color of the path stroke in RGBA format (0-255)*. Defaults to `(0, 0, 0, 255)`
 - **dur** : *Duration of each animation step in seconds*. Defaults to `0.02`
+- **fps** : *Frames per second for animation*. Defaults to `30`
 
-#### Important:
-- Fill color would only work if it's in hex and inside `<path>` tag. You must modify svg if it's not this way already.
-- Gradient is not yet supported - default to `#ffffff` if can't parse color
+### Important Notes:
+- Fill color only works if it's in hex format inside `<path>` tag
+- Gradient is not yet supported - defaults to `#ffffff` if can't parse color
 
 #
-
-### Shape Animation
-
-```python
-from kivg import Kivg
-
-s = Kivg(my_widget)
-
-anim_config = [
-    { "id_":"k", "from_":"center_x", "t":"out_back",   "d":.4 },
-    { "id_":"i", "from_":"center_y", "t":"out_bounce", "d":.4 },
-    { "id_":"v", "from_":"top",      "t":"out_quint",  "d":.4 },
-    { "id_":"y", "from_":"bottom",   "t":"out_back",   "d":.4 }
-]
-
-# call shape_animate method with `svg_file` and an animation config list and optional callback
-s.shape_animate("text.svg", anim_config_list=anim_config, on_complete=lambda *args: print("Completed!"))
-```
-
-#### Animation Configuration:
-- **anim_config_list** : A list of dicts where each dict contain config for an `id`. Description of each key:
-    - `"id_"` : `id` of svg `<path>` tag. It's required so each dict must contain `"id_"` key
-    - `"from_"` : Direction from which a path should grow. Accepted values `"left"`, `"right"`, `"top"`, `"bottom"`, `"center_x"`(grow from center along horizontal axis), `"center_y"`, and `None`(Draw without animation). Defaults to `None`.
-    - `"t"` : [Animation transition](https://kivy.org/doc/stable/api-kivy.animation.html?highlight=animation#kivy.animation.AnimationTransition). Defaults to `"out_sine"`.
-    - `"d"` : Duration of animation. It'll still in-effect if `"from_"` is set to `None`. Defaults to .3
-
-- **on_complete** (optional) : Function to call after entire animation is finished. It can be used to create looping animation
-
-#### Important:
-- You must add a unique `id` to each path element you want to animate
-- Dictionary order in the list is important - animations run in the sequence provided
-- Animations can be chained by using the on_complete callback for continuous effects
 
 ## Project Structure
 
@@ -93,15 +97,23 @@ kivg/
 ├── __init__.py         # Package entry point
 ├── data_classes.py     # Data structures for animation contexts
 ├── main.py             # Core Kivg class implementation
-├── mesh_handler.py     # Handles mesh rendering 
 ├── path_utils.py       # SVG path utilities
 ├── svg_parser.py       # SVG parsing functionality
-├── svg_renderer.py     # SVG rendering engine
 ├── version.py          # Version information
+├── core/               # Core rendering components
+│   ├── animation.py    # Animation engine (standalone)
+│   ├── canvas.py       # OpenCV-based canvas
+│   └── easing.py       # Transition/easing functions
+├── rendering/          # Rendering subsystem
+│   ├── path_renderer.py    # Path rendering
+│   └── shape_renderer.py   # Shape/polygon filling
+├── export/             # Export functionality
+│   ├── image.py        # PNG/JPG export
+│   ├── video.py        # MP4/AVI export
+│   └── gif.py          # GIF export
 ├── animation/          # Animation subsystem
 │   ├── animation_shapes.py  # Shape-specific animations
-│   ├── handler.py           # Animation coordination
-│   └── kivy_animation.py    # Kivy animation file with some modifications
+│   └── handler.py           # Animation coordination
 └── drawing/            # Drawing subsystem
     └── manager.py      # Drawing management
 ```
@@ -113,37 +125,31 @@ kivg/
    pip install kivg
    ```
 
-2. **Set up your Kivy widget**:
+2. **Render SVG to image**:
    ```python
-    from kivy.app import App
-    from kivy.uix.widget import Widget
-    from kivg import Kivg
+   from kivg import Kivg
 
-    class MyWidget(Widget):
-        def __init__(self, **kwargs):
-            super(MyWidget, self).__init__(**kwargs)
-            self.size = (1024, 1024)
-            self.pos = (0, 0)
-
-    class KivgDemoApp(App):
-        def build(self):
-            widget = MyWidget()
-            self.kivg = Kivg(widget)
-            self.kivg.draw("icons/so.svg", animate=True, line_color=[1,1,1,1], line_width=2)
-            return widget
-
-    if __name__ == "__main__":
-        KivgDemoApp().run()
+   # Create renderer
+   kivg = Kivg(width=256, height=256)
+   
+   # Draw SVG
+   kivg.draw("icons/github.svg", fill=True)
+   
+   # Save output
+   kivg.save_image("github.png")
    ```
 
-3. **Try shape animations**:
+3. **Create animation video**:
    ```python
-   # Configure animations for different shapes
-   animations = [
-       {"id_": "shape1", "from_": "left", "t": "out_bounce", "d": 0.5},
-       {"id_": "shape2", "from_": "top", "t": "out_elastic", "d": 0.3}
-   ]
-   self.kivg.shape_animate("path/to/your.svg", anim_config_list=animations)
+   from kivg import Kivg
+
+   kivg = Kivg(width=512, height=512)
+   
+   # Generate animation frames
+   kivg.draw("logo.svg", animate=True, fill=True, fps=30)
+   
+   # Export as video
+   kivg.save_animation("logo_animation.mp4", fps=30)
    ```
 
 ## Useful Tools
@@ -163,6 +169,14 @@ Few links that I found useful for modifying few svg files in order to work with 
     Useful for cleaning up and optimizing SVG files to ensure compatibility.
 
 ## Changelog
+
+**v2.0 (OpenCV Migration)**
+* Migrated from Kivy to OpenCV for headless rendering
+* Added image export (PNG, JPG)
+* Added video export (MP4, AVI)
+* Added GIF export support
+* Removed UI dependencies - now works on servers without display
+* Lighter package size with opencv-python-headless
 
 **v1.1**
 * Fixed crashing when SVG size is not int
