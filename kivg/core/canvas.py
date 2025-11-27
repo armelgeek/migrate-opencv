@@ -125,6 +125,39 @@ class OpenCVCanvas:
         else:
             cv2.fillPoly(self.image, [points_array], rgba)
     
+    def fill_polygons_with_holes(self, contours: List[List[Tuple[int, int]]], 
+                                  color: Tuple[int, int, int, int]):
+        """
+        Fill multiple polygons with holes support.
+        
+        When multiple contours are passed together to cv2.fillPoly, inner contours
+        with opposite winding direction become holes (non-zero winding rule).
+        
+        Args:
+            contours: List of contours, each contour is a list of (x, y) points.
+                      Inner contours with opposite winding become holes.
+            color: RGBA color (0-255 for each component)
+        """
+        if not contours:
+            return
+            
+        # Convert all contours to numpy arrays
+        contour_arrays = [np.array(c, dtype=np.int32) for c in contours if len(c) >= 3]
+        
+        if not contour_arrays:
+            return
+        
+        # Normalize color
+        rgba = normalize_color(color, input_range='0-255')
+        
+        if rgba[3] < 255:
+            overlay = self.image.copy()
+            cv2.fillPoly(overlay, contour_arrays, rgba)
+            alpha = rgba[3] / 255.0
+            cv2.addWeighted(overlay, alpha, self.image, 1 - alpha, 0, self.image)
+        else:
+            cv2.fillPoly(self.image, contour_arrays, rgba)
+    
     @staticmethod
     def _calculate_bezier_points(start: Tuple[float, float], ctrl1: Tuple[float, float], 
                                  ctrl2: Tuple[float, float], end: Tuple[float, float], 
