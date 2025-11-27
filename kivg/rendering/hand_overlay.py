@@ -48,12 +48,31 @@ class HandOverlay:
         if img is None:
             return
         
-        # Convert BGR to RGBA if needed
-        if img.shape[2] == 3:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
-        elif img.shape[2] == 4:
-            # Convert BGRA to RGBA
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+        # Validate image dimensions
+        if len(img.shape) < 2:
+            return
+        
+        # Handle grayscale images (2D array)
+        if len(img.shape) == 2:
+            # Convert grayscale to RGBA
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGBA)
+        elif len(img.shape) == 3:
+            num_channels = img.shape[2]
+            if num_channels == 1:
+                # Single channel, convert to RGBA
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGBA)
+            elif num_channels == 3:
+                # BGR to RGBA (add alpha channel)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGBA)
+            elif num_channels == 4:
+                # BGRA to RGBA
+                img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+            else:
+                # Unsupported format
+                return
+        else:
+            # Unsupported image format
+            return
         
         self._original_hand = img
         self._apply_scale()
