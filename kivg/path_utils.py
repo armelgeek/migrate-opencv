@@ -130,7 +130,7 @@ B3_t = lambda t: t ** 3
 
 def get_all_points(start: Tuple[float, float], control1: Tuple[float, float], 
                   control2: Tuple[float, float], end: Tuple[float, float], 
-                  segments: int = 40) -> List[float]:
+                  segments: int = 100) -> List[float]:
     """
     Generate discrete points along a cubic bezier curve.
     

@@ -14,7 +14,7 @@ except ImportError:
 
 
 def save_gif(frames: List[np.ndarray], path: str, fps: int = 30,
-             loop: int = 0) -> bool:
+             loop: int = 0, quality: int = 10) -> bool:
     """
     Save a list of frames as an animated GIF.
     
@@ -23,6 +23,7 @@ def save_gif(frames: List[np.ndarray], path: str, fps: int = 30,
         path: Output file path
         fps: Frames per second
         loop: Number of loops (0 = infinite)
+        quality: Image quality for GIF (1-10, higher = better quality)
         
     Returns:
         True if successful
@@ -50,11 +51,24 @@ def save_gif(frames: List[np.ndarray], path: str, fps: int = 30,
         # Calculate duration per frame in seconds
         duration = 1.0 / fps
         
-        # Save as GIF
-        imageio.mimsave(path, rgb_frames, duration=duration, loop=loop)
+        # Save as GIF with better quality settings
+        imageio.mimsave(
+            path, 
+            rgb_frames, 
+            duration=duration, 
+            loop=loop,
+            quantizer='nq',  # Neural-network quantizer for better quality
+            palettesize=256  # Maximum palette size
+        )
         return True
     except Exception:
-        return False
+        # Fallback to simple save if advanced options fail
+        try:
+            duration = 1.0 / fps
+            imageio.mimsave(path, rgb_frames, duration=duration, loop=loop)
+            return True
+        except Exception:
+            return False
 
 
 def has_gif_support() -> bool:

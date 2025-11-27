@@ -85,7 +85,7 @@ class OpenCVCanvas:
     def draw_bezier(self, start: Tuple[int, int], ctrl1: Tuple[int, int],
                     ctrl2: Tuple[int, int], end: Tuple[int, int],
                     color: Tuple[int, int, int, int], thickness: int = 1,
-                    segments: int = 100):
+                    segments: int = 150):
         """
         Draw a cubic Bezier curve on the canvas.
         
@@ -96,7 +96,7 @@ class OpenCVCanvas:
             end: End point (x, y)
             color: RGBA color (0-255 for each component)
             thickness: Line thickness
-            segments: Number of segments for curve approximation
+            segments: Number of segments for curve approximation (higher = smoother)
         """
         points = self._calculate_bezier_points(start, ctrl1, ctrl2, end, segments)
         points = np.array(points, dtype=np.int32)
@@ -161,7 +161,7 @@ class OpenCVCanvas:
     @staticmethod
     def _calculate_bezier_points(start: Tuple[float, float], ctrl1: Tuple[float, float], 
                                  ctrl2: Tuple[float, float], end: Tuple[float, float], 
-                                 segments: int = 100) -> List[Tuple[int, int]]:
+                                 segments: int = 150) -> List[Tuple[int, int]]:
         """
         Calculate discrete points along a cubic Bezier curve.
         
@@ -173,7 +173,7 @@ class OpenCVCanvas:
             ctrl1: First control point (x, y)
             ctrl2: Second control point (x, y)
             end: End point (x, y)
-            segments: Number of segments
+            segments: Number of segments (higher = smoother curves)
             
         Returns:
             List of points along the curve
@@ -191,7 +191,8 @@ class OpenCVCanvas:
             x = b0 * start[0] + b1 * ctrl1[0] + b2 * ctrl2[0] + b3 * end[0]
             y = b0 * start[1] + b1 * ctrl1[1] + b2 * ctrl2[1] + b3 * end[1]
             
-            points.append((int(x), int(y)))
+            # Use round instead of int for better precision
+            points.append((round(x), round(y)))
         
         return points
     
