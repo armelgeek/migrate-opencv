@@ -31,7 +31,7 @@ frames = kivg.draw(
     fill=True,
     hand_draw=True,            # Main activée
     hand_scale=0.35,           # Taille de la main (défaut: 0.30)
-    hand_offset=(-40, -18),   # Position par rapport au trait (x, y)
+    hand_offset=(-118, 10),    # Position ajustée pour aligner la pointe du stylo
     # hand_image='path/to/custom_hand.png',  # Image personnalisée (optionnel)
     fps=30
 )
