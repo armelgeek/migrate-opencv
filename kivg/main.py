@@ -1,62 +1,94 @@
 """
-Kivg - SVG drawing and animation for Kivy
-Core class and main API
+Kivg - SVG drawing and animation using OpenCV
+Core class and main API (headless, no UI required)
 """
 
 from collections import OrderedDict
-from typing import List, Tuple, Dict, Any, Callable
+from typing import List, Tuple, Dict, Any, Callable, Optional
+import numpy as np
 
-from kivg.animation.kivy_animation import Animation
-from kivg.drawing.manager import DrawingManager
-from kivg.animation.handler import AnimationHandler
-from kivg.mesh_handler import MeshHandler
-from kivg.svg_renderer import SvgRenderer
+from .core.canvas import OpenCVCanvas
+from .core.animation import Animation
+from .drawing.manager import DrawingManager
+from .rendering.path_renderer import PathRenderer
+from .rendering.shape_renderer import ShapeRenderer
+
+
+class PropertyHolder:
+    """
+    Simple class to hold dynamic properties for animation.
+    Replaces Kivy widget for headless rendering.
+    """
+    
+    def __init__(self, width: int = 512, height: int = 512):
+        """
+        Initialize the property holder.
+        
+        Args:
+            width: Canvas width
+            height: Canvas height
+        """
+        self.size = (width, height)
+        self.pos = (0, 0)
+        self.mesh_opacity = 1.0
 
 
 class Kivg:
     """
-    Main class for rendering and animating SVG files in Kivy applications.
+    Main class for rendering and animating SVG files using OpenCV.
     
-    This class provides methods to draw SVG files onto Kivy widgets and
-    animate them using various techniques.
+    This class provides methods to draw SVG files to an OpenCV canvas
+    and generate animation frames for export.
     """
 
-    def __init__(self, widget: Any, *args):
+    def __init__(self, width: int = 512, height: int = 512,
+                 background: Tuple[int, int, int, int] = (255, 255, 255, 255)):
         """
         Initialize the Kivg renderer.
         
         Args:
-            widget: Kivy widget to draw SVG upon
-            *args: Additional arguments (not currently used)
+            width: Canvas width in pixels
+            height: Canvas height in pixels
+            background: RGBA background color (0-255 for each component)
         """
-        self.widget = widget  # Target widget for rendering
-        self._fill = True  # Fill path with color after drawing
-        self._line_width = 2
-        self._line_color = [0, 0, 0, 1]
-        self._animation_duration = 0.02
-        self._previous_svg_file = ""  # Cache previous SVG file
+        self.width = width
+        self.height = height
+        self.canvas = OpenCVCanvas(width, height, background)
         
-        # Animation state
+        # Property holder (replaces Kivy widget)
+        self.widget = PropertyHolder(width, height)
+        
+        # Default settings
+        self._fill = True
+        self._line_width = 2
+        self._line_color = (0, 0, 0, 255)  # RGBA 0-255
+        self._animation_duration = 0.02
+        self._previous_svg_file = ""
+        
+        # SVG data
         self.path = []
         self.closed_shapes = OrderedDict()
         self.svg_size = []
         self.current_svg_file = ""
         
-        # Shape animation state
+        # Animation state
         self.all_anim = []
         self.curr_count = 0
         self.prev_shapes = []
         self.curr_shape = []
+        
+        # Stored animation frames
+        self._frames: List[np.ndarray] = []
 
     def fill_up(self, shapes: List[List[float]], color: List[float]) -> None:
         """
-        Fill shapes with specified color using mesh rendering.
+        Fill shapes with specified color.
         
         Args:
             shapes: List of shape point lists to fill
-            color: RGB or RGBA color to fill with
+            color: RGB or RGBA color (0-1 range for compatibility)
         """
-        MeshHandler.render_mesh(self.widget, shapes, color, "mesh_opacity")
+        ShapeRenderer.render_mesh(self.canvas, self.widget, shapes, color, "mesh_opacity")
 
     def fill_up_shapes(self, *args) -> None:
         """Fill all shapes in the current SVG file."""
@@ -69,172 +101,253 @@ class Kivg:
         for shape in shapes:
             color = shape[0]
             self.fill_up([shape[1]], color)
-    
-    def anim_on_comp(self, *args) -> None:
-        """Handle completion of an animation in the sequence."""
-        self.curr_count += 1
-        self.prev_shapes.append(self.curr_shape)
-        
-        if self.curr_count < len(self.all_anim):
-            id_, animation = self.all_anim[self.curr_count]
-            setattr(self, "curr_id", id_)
-            setattr(self, "curr_clr", self.closed_shapes[id_]["color"])
-            
-            # Clear previous bindings and add new ones
-            animation.unbind(on_progress=self.track_progress)
-            animation.unbind(on_complete=self.anim_on_comp)
-            
-            animation.bind(on_progress=self.track_progress)
-            animation.bind(on_complete=self.anim_on_comp)
-            
-            animation.start(self.widget)
-    
-    def track_progress(self, *args) -> None:
-        """
-        Track animation progress and update the canvas.
-        
-        Called during animation progress. Updates the current shape.
-        """
-        id_ = getattr(self, "curr_id")
-        elements_list = getattr(self, f"{id_}_tmp")
-
-        shape_list = SvgRenderer.collect_shape_points(elements_list, self.widget, id_)
-        
-        self.widget.canvas.clear()
-        self.curr_shape = (getattr(self, "curr_clr"), shape_list)
-        shapes = [*self.prev_shapes, self.curr_shape]
-        self.fill_up_shapes_anim(shapes)
 
     def update_canvas(self, *args, **kwargs) -> None:
         """Update the canvas with the current drawing state."""
-        SvgRenderer.update_canvas(self.widget, self.path, self._line_color)
+        # Convert line color from 0-1 to 0-255 if needed
+        if all(c <= 1.0 for c in self._line_color[:3]):
+            line_color = tuple(int(c * 255) for c in self._line_color)
+        else:
+            line_color = self._line_color
+        
+        PathRenderer.update_canvas(self.canvas, self.widget, self.path, line_color)
 
     def draw(self, svg_file: str, animate: bool = False, 
-             anim_type: str = "seq", *args, **kwargs) -> None:
+             anim_type: str = "seq", *args, **kwargs) -> Optional[List[np.ndarray]]:
         """
-        Draw an SVG file onto the widget with optional animation.
+        Draw an SVG file onto the canvas.
         
         Args:
             svg_file: Path to the SVG file
-            animate: Whether to animate the drawing process
+            animate: Whether to generate animation frames
             anim_type: Animation type - "seq" for sequential or "par" for parallel
             
         Keyword Args:
             fill: Whether to fill the drawing (bool)
             line_width: Width of lines (int)
-            line_color: Color of lines (list)
+            line_color: Color of lines (RGBA tuple, 0-255 or 0-1 range)
             dur: Duration of each animation step (float)
+            fps: Frames per second for animation (int)
             from_shape_anim: Whether called from shape_animate (bool)
+            
+        Returns:
+            List of animation frames if animate=True, None otherwise
         """
         # Process arguments
         fill = kwargs.get("fill", self._fill)
         line_width = kwargs.get("line_width", self._line_width)
         line_color = kwargs.get("line_color", self._line_color)
         duration = kwargs.get("dur", self._animation_duration)
+        fps = kwargs.get("fps", 30)
         from_shape_anim = kwargs.get("from_shape_anim", False)
         anim_type = anim_type if anim_type in ("seq", "par") else "seq"
         
-        # Set current values as instance attributes for other methods to access
+        # Update instance attributes
         self._fill = fill
         self._line_width = line_width
         self._line_color = line_color
         self._animation_duration = duration
         self.current_svg_file = svg_file
         
-        # Only process SVG if it's different from the previous one
+        # Process SVG if different from previous
         if svg_file != self._previous_svg_file:
             self.svg_size, self.closed_shapes, self.path = DrawingManager.process_path_data(svg_file)
             self._previous_svg_file = svg_file
         
-        # Calculate the paths and get animation list
+        # Calculate paths
         anim_list = DrawingManager.calculate_paths(
             self.widget, self.closed_shapes, self.svg_size, 
             svg_file, animate, line_width, duration
         )
         
-        # Handle animation and rendering
+        # Handle rendering
         if not from_shape_anim:
             if animate:
-                # Combine animations according to anim_type
-                anim = AnimationHandler.create_animation_sequence(
-                    anim_list, sequential=(anim_type == "seq")
-                )
-                
-                # Add fill animation if needed
-                if fill:
-                    setattr(self.widget, "mesh_opacity", 0)
-                    anim = AnimationHandler.add_fill_animation(
-                        anim, self.widget, self.fill_up_shapes
-                    )
-                
-                # Start the animation
-                AnimationHandler.prepare_and_start_animation(
-                    anim, self.widget, self.update_canvas
-                )
+                # Generate animation frames
+                frames = self._generate_animation_frames(anim_list, fill, fps, anim_type)
+                self._frames = frames
+                return frames
             else:
                 # Static rendering
                 Animation.cancel_all(self.widget)
-                if not fill:
-                    self.update_canvas()
-                else:
-                    self.widget.canvas.clear()
+                self.canvas.clear()
+                
+                if fill:
                     self.fill_up_shapes()
+                else:
+                    self.update_canvas()
+                
+                return None
+        
+        return None
 
-    def shape_animate(self, svg_file: str, anim_config_list: List[Dict] = None, 
-                     on_complete: Callable = None) -> None:
+    def _generate_animation_frames(self, anim_list: List[Animation], 
+                                   fill: bool, fps: int, 
+                                   anim_type: str) -> List[np.ndarray]:
         """
-        Animate individual shapes in an SVG file.
+        Generate animation frames for export.
         
         Args:
-            svg_file: Path to the SVG file
-            anim_config_list: List of animation configurations, each containing:
-                - id_: Shape ID to animate
-                - from_: Direction of animation
-                - d: Duration (optional)
-                - t: Transition (optional)
-            on_complete: Function to call when all animations complete
+            anim_list: List of animations
+            fill: Whether to fill shapes
+            fps: Frames per second
+            anim_type: Animation type ("seq" or "par")
+            
+        Returns:
+            List of frame images as numpy arrays
         """
-        if anim_config_list is None:
-            anim_config_list = []
+        frames = []
+        
+        if not anim_list:
+            # No animations, just return current canvas
+            self.canvas.clear()
+            if fill:
+                self.fill_up_shapes()
+            else:
+                self.update_canvas()
+            frames.append(self.canvas.get_image())
+            return frames
+        
+        # Calculate total animation duration
+        if anim_type == "seq":
+            total_duration = sum(anim.duration for anim in anim_list)
+        else:
+            total_duration = max(anim.duration for anim in anim_list)
+        
+        # Add time for fill animation if needed
+        if fill:
+            total_duration += 0.4
+        
+        num_frames = max(1, int(total_duration * fps))
+        
+        # Generate frames by interpolating animation states
+        for frame_idx in range(num_frames + 1):
+            progress = frame_idx / num_frames if num_frames > 0 else 1.0
+            current_time = progress * total_duration
             
-        # First draw the SVG without animation
-        self.draw(svg_file, from_shape_anim=True)
-        setattr(self.widget, "mesh_opacity", 1)
+            # Update animation properties for current time
+            self._update_animation_state(anim_list, current_time, anim_type)
+            
+            # Clear and redraw
+            self.canvas.clear()
+            
+            # Calculate fill opacity
+            fill_start_time = total_duration - 0.4 if fill else total_duration
+            if fill and current_time >= fill_start_time:
+                fill_progress = (current_time - fill_start_time) / 0.4
+                self.widget.mesh_opacity = min(1.0, fill_progress)
+                self.fill_up_shapes()
+            elif fill:
+                self.widget.mesh_opacity = 0.0
+                self.update_canvas()
+            else:
+                self.update_canvas()
+            
+            frames.append(self.canvas.get_image())
+        
+        return frames
 
-        # Initialize animation state
-        self.all_anim = []
-        self.curr_count = 0
-        self.prev_shapes = []
-        self.curr_shape = []
+    def _update_animation_state(self, anim_list: List[Animation], 
+                                current_time: float, anim_type: str) -> None:
+        """Update widget properties based on animation state at current time."""
+        if anim_type == "seq":
+            # Sequential: run animations one after another
+            elapsed = 0
+            for anim in anim_list:
+                if current_time >= elapsed and current_time < elapsed + anim.duration:
+                    # This animation is active
+                    local_progress = (current_time - elapsed) / anim.duration if anim.duration > 0 else 1.0
+                    local_progress = min(1.0, max(0.0, local_progress))
+                    t = anim._transition(local_progress)
+                    
+                    for key, target in anim.animated_properties.items():
+                        start_val = getattr(self.widget, key, 0)
+                        # For initial state, we need the starting value
+                        # which should already be set on widget
+                        value = start_val + (target - start_val) * t
+                        setattr(self.widget, key, value)
+                    break
+                elif current_time >= elapsed + anim.duration:
+                    # Animation completed, set final values
+                    for key, target in anim.animated_properties.items():
+                        setattr(self.widget, key, target)
+                elapsed += anim.duration
+        else:
+            # Parallel: run all animations at once
+            for anim in anim_list:
+                progress = current_time / anim.duration if anim.duration > 0 else 1.0
+                progress = min(1.0, max(0.0, progress))
+                t = anim._transition(progress)
+                
+                for key, target in anim.animated_properties.items():
+                    start_val = getattr(self.widget, key, 0)
+                    value = start_val + (target - start_val) * t
+                    setattr(self.widget, key, value)
+
+    def save_image(self, path: str) -> None:
+        """
+        Save the current canvas to an image file.
         
-        # Prepare animations using AnimationHandler
-        self.all_anim = AnimationHandler.prepare_shape_animations(
-            self,
-            self.widget,
-            anim_config_list,
-            self.closed_shapes,
-            self.svg_size,
-            self.current_svg_file
-        )
+        Args:
+            path: Output file path (.png, .jpg, etc.)
+        """
+        self.canvas.save(path)
+    
+    def save_animation(self, path: str, fps: int = 30) -> bool:
+        """
+        Save animation frames to a video file.
         
-        # Start animations if any are ready
-        if self.all_anim:
-            id_, animation = self.all_anim[0]
-            setattr(self, "curr_id", id_)
-            setattr(self, "curr_clr", self.closed_shapes[id_]["color"])
+        Args:
+            path: Output file path (.mp4, .avi, etc.)
+            fps: Frames per second
             
-            # Attach progress tracking
-            animation.bind(on_progress=self.track_progress)
+        Returns:
+            True if successful
+        """
+        from .export.video import write_video
+        
+        if not self._frames:
+            return False
+        
+        return write_video(self._frames, path, fps)
+    
+    def save_gif(self, path: str, fps: int = 30) -> bool:
+        """
+        Save animation frames to a GIF file.
+        
+        Args:
+            path: Output file path (.gif)
+            fps: Frames per second
             
-            # Attach completion callback if provided
-            if on_complete and self.all_anim:
-                self.all_anim[-1][1].bind(on_complete=on_complete)
-            
-            # Start the animation
-            animation.cancel_all(self.widget)
-            animation.bind(on_complete=self.anim_on_comp)
-            animation.start(self.widget)
-        elif anim_config_list:
-            # In case there are config items but no animations were created
-            if on_complete:
-                on_complete()
+        Returns:
+            True if successful
+        """
+        from .export.gif import save_gif
+        
+        if not self._frames:
+            return False
+        
+        return save_gif(self._frames, path, fps)
+    
+    def get_image(self) -> np.ndarray:
+        """
+        Get the current canvas as a numpy array.
+        
+        Returns:
+            Canvas image as RGBA numpy array
+        """
+        return self.canvas.get_image()
+    
+    def get_frames(self) -> List[np.ndarray]:
+        """
+        Get the stored animation frames.
+        
+        Returns:
+            List of frame images as numpy arrays
+        """
+        return self._frames.copy()
+    
+    def clear(self) -> None:
+        """Clear the canvas."""
+        self.canvas.clear()
+        self._frames = []

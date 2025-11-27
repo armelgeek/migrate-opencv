@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import os, re
 
 with open("README.md", "r") as fh:
@@ -20,23 +20,28 @@ def get_version() -> str:
 setup(
     name="Kivg",
     version=get_version(),
-    packages=["kivg"],
-    package_data={"kivg": ["*.py", "animation/*.py", "drawing/*.py"]},
+    packages=find_packages(),
+    package_data={"kivg": ["*.py", "animation/*.py", "drawing/*.py", "core/*.py", "rendering/*.py", "export/*.py"]},
     # metadata to display on PyPI
     author="Shashi Ranjan",
     author_email="shashiranjankv@gmail.com",
-    description="SVG path drawing and animation support in kivy application",
+    description="SVG path drawing and animation support using OpenCV (headless)",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    keywords="svg svg-animations svg-path svg-images kivy-application kivy python",
+    keywords="svg svg-animations svg-path svg-images opencv python headless",
     url="https://github.com/shashi278/svg-anim-kivy",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
-        "Operating System :: Android",
-        "Operating System :: Microsoft :: Windows",
         "Operating System :: OS Independent"
     ],
-    install_requires=["kivy>=2.0.0", "svg.path==4.1"],
-    python_requires=">=3.6",
+    install_requires=[
+        "opencv-python-headless>=4.8.0",
+        "numpy>=1.24.0",
+        "svg.path==4.1",
+    ],
+    extras_require={
+        "gif": ["imageio>=2.31.0"],
+    },
+    python_requires=">=3.8",
 )
