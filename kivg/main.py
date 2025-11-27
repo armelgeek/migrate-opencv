@@ -514,3 +514,290 @@ class Kivg:
         """Clear the canvas."""
         self.canvas.clear()
         self._frames = []
+    
+    def draw_text(self, text: str, x: float = 0, y: float = 0, 
+                  animate: bool = False, **kwargs) -> Optional[List[np.ndarray]]:
+        """
+        Draw text on the canvas with optional animation.
+        
+        Args:
+            text: The text to draw
+            x: X position (in pixels)
+            y: Y position (in pixels)
+            animate: Whether to animate the text (character-by-character reveal)
+            
+        Keyword Args:
+            font_family: Font family name (default: 'sans-serif')
+            font_size: Font size in pixels (default: 32)
+            font_weight: Font weight ('normal', 'bold', or numeric 100-900)
+            font_style: Font style ('normal', 'italic', 'oblique')
+            fill: Fill color as RGBA tuple (0-255) or hex string
+            stroke: Stroke color as RGBA tuple (0-255) or hex string
+            stroke_width: Stroke width in pixels
+            text_anchor: Text alignment ('start', 'middle', 'end')
+            letter_spacing: Space between letters in pixels
+            text_decoration: Decoration ('none', 'underline', 'line-through', 'overline')
+            opacity: Opacity (0-1)
+            fps: Frames per second for animation (default: 30)
+            duration: Total animation duration in seconds (default: 1.0)
+            
+        Returns:
+            List of animation frames if animate=True, None otherwise
+        """
+        from .rendering.text_renderer import TextRenderer
+        from .color_utils import hex_to_rgba, color_to_0_1_range
+        
+        # Parse color arguments
+        fill_arg = kwargs.get('fill', (0, 0, 0, 255))
+        if isinstance(fill_arg, str):
+            fill_rgba = hex_to_rgba(fill_arg)
+            fill_color = color_to_0_1_range(fill_rgba)
+        else:
+            # Assume it's already an RGBA tuple - check length first
+            if len(fill_arg) < 3:
+                fill_color = [0, 0, 0, 1.0]  # Default black
+            elif all(c <= 1.0 for c in fill_arg[:3]):
+                fill_color = list(fill_arg)
+                if len(fill_color) == 3:
+                    fill_color.append(1.0)
+            else:
+                fill_color = [c / 255.0 for c in fill_arg[:3]]
+                alpha = fill_arg[3] / 255.0 if len(fill_arg) > 3 else 1.0
+                fill_color.append(alpha)
+        
+        stroke_arg = kwargs.get('stroke', None)
+        stroke_color = None
+        if stroke_arg:
+            if isinstance(stroke_arg, str):
+                stroke_rgba = hex_to_rgba(stroke_arg)
+                stroke_color = color_to_0_1_range(stroke_rgba)
+            else:
+                # Check length first to avoid IndexError
+                if len(stroke_arg) < 3:
+                    stroke_color = None  # Invalid color
+                elif all(c <= 1.0 for c in stroke_arg[:3]):
+                    stroke_color = list(stroke_arg)
+                    if len(stroke_color) == 3:
+                        stroke_color.append(1.0)
+                else:
+                    stroke_color = [c / 255.0 for c in stroke_arg[:3]]
+                    alpha = stroke_arg[3] / 255.0 if len(stroke_arg) > 3 else 1.0
+                    stroke_color.append(alpha)
+        
+        # Build text data dictionary
+        text_data = {
+            'text': text,
+            'x': x,
+            'y': y,
+            'font_family': kwargs.get('font_family', 'sans-serif'),
+            'font_size': kwargs.get('font_size', 32),
+            'font_weight': kwargs.get('font_weight', 'normal'),
+            'font_style': kwargs.get('font_style', 'normal'),
+            'fill': fill_color,
+            'stroke': stroke_color,
+            'stroke_width': kwargs.get('stroke_width', None),
+            'text_anchor': kwargs.get('text_anchor', 'start'),
+            'dominant_baseline': kwargs.get('dominant_baseline', 'auto'),
+            'letter_spacing': kwargs.get('letter_spacing', 0),
+            'text_decoration': kwargs.get('text_decoration', 'none'),
+            'opacity': kwargs.get('opacity', 1.0),
+            'id': 'direct_text'
+        }
+        
+        fps = kwargs.get('fps', 30)
+        duration = kwargs.get('duration', 1.0)
+        
+        if animate:
+            # Generate character-by-character animation frames
+            frames = self._generate_text_animation_frames(text_data, fps, duration)
+            self._frames = frames
+            return frames
+        else:
+            # Static rendering
+            TextRenderer.draw_text(
+                self.canvas, text_data,
+                scale_x=1.0, scale_y=1.0,
+                offset_x=0, offset_y=0,
+                opacity=1.0,
+                char_reveal=-1
+            )
+            return None
+    
+    def draw_text_svg(self, svg_file: str, animate: bool = False, 
+                      **kwargs) -> Optional[List[np.ndarray]]:
+        """
+        Draw text elements from an SVG file with optional animation.
+        
+        Args:
+            svg_file: Path to the SVG file containing text elements
+            animate: Whether to animate the text (character-by-character reveal)
+            
+        Keyword Args:
+            fps: Frames per second for animation (default: 30)
+            duration: Total animation duration in seconds (default: 2.0)
+            anim_type: Animation type - 'seq' for sequential (one text at a time),
+                       'par' for parallel (all texts together)
+            
+        Returns:
+            List of animation frames if animate=True, None otherwise
+        """
+        from .svg_parser import parse_text_elements
+        from .rendering.text_renderer import TextRenderer
+        
+        fps = kwargs.get('fps', 30)
+        duration = kwargs.get('duration', 2.0)
+        anim_type = kwargs.get('anim_type', 'seq')
+        
+        # Parse text elements from SVG
+        svg_size, text_elements = parse_text_elements(svg_file)
+        
+        if not text_elements:
+            return None
+        
+        # Calculate scale factors
+        scale_x = self.width / svg_size[0] if svg_size[0] > 0 else 1.0
+        scale_y = self.height / svg_size[1] if svg_size[1] > 0 else 1.0
+        
+        if animate:
+            frames = self._generate_svg_text_animation_frames(
+                text_elements, scale_x, scale_y, fps, duration, anim_type
+            )
+            self._frames = frames
+            return frames
+        else:
+            # Static rendering - draw all text elements
+            for text_data in text_elements:
+                TextRenderer.draw_text(
+                    self.canvas, text_data,
+                    scale_x=scale_x, scale_y=scale_y,
+                    offset_x=0, offset_y=0,
+                    opacity=1.0,
+                    char_reveal=-1
+                )
+            return None
+    
+    def _generate_text_animation_frames(self, text_data: Dict[str, Any],
+                                         fps: int, duration: float) -> List[np.ndarray]:
+        """
+        Generate animation frames for a single text element.
+        
+        Args:
+            text_data: Text element data dictionary
+            fps: Frames per second
+            duration: Total animation duration
+            
+        Returns:
+            List of frame images as numpy arrays
+        """
+        from .rendering.text_renderer import TextRenderer
+        
+        frames = []
+        text = text_data['text']
+        total_chars = len(text)
+        num_frames = max(1, int(duration * fps))
+        
+        for frame_idx in range(num_frames + 1):
+            progress = frame_idx / num_frames if num_frames > 0 else 1.0
+            char_reveal = int(progress * total_chars)
+            
+            # Clear and redraw
+            self.canvas.clear()
+            
+            TextRenderer.draw_text(
+                self.canvas, text_data,
+                scale_x=1.0, scale_y=1.0,
+                offset_x=0, offset_y=0,
+                opacity=1.0,
+                char_reveal=char_reveal
+            )
+            
+            frames.append(self.canvas.get_image())
+        
+        return frames
+    
+    def _generate_svg_text_animation_frames(self, text_elements: List[Dict[str, Any]],
+                                             scale_x: float, scale_y: float,
+                                             fps: int, duration: float,
+                                             anim_type: str) -> List[np.ndarray]:
+        """
+        Generate animation frames for multiple text elements from SVG.
+        
+        Args:
+            text_elements: List of text element data dictionaries
+            scale_x: X scale factor
+            scale_y: Y scale factor
+            fps: Frames per second
+            duration: Total animation duration
+            anim_type: Animation type ('seq' or 'par')
+            
+        Returns:
+            List of frame images as numpy arrays
+        """
+        from .rendering.text_renderer import TextRenderer
+        
+        frames = []
+        num_frames = max(1, int(duration * fps))
+        
+        if anim_type == 'seq':
+            # Sequential: animate one text element at a time
+            duration_per_text = duration / len(text_elements) if text_elements else duration
+            
+            for frame_idx in range(num_frames + 1):
+                progress = frame_idx / num_frames if num_frames > 0 else 1.0
+                current_time = progress * duration
+                
+                # Clear canvas
+                self.canvas.clear()
+                
+                for text_idx, text_data in enumerate(text_elements):
+                    text_start = text_idx * duration_per_text
+                    text_end = (text_idx + 1) * duration_per_text
+                    text = text_data['text']
+                    total_chars = len(text)
+                    
+                    if current_time < text_start:
+                        # Text hasn't started yet
+                        char_reveal = 0
+                    elif current_time >= text_end:
+                        # Text animation complete
+                        char_reveal = total_chars
+                    else:
+                        # Text is animating
+                        text_progress = (current_time - text_start) / duration_per_text
+                        char_reveal = int(text_progress * total_chars)
+                    
+                    if char_reveal > 0:
+                        TextRenderer.draw_text(
+                            self.canvas, text_data,
+                            scale_x=scale_x, scale_y=scale_y,
+                            offset_x=0, offset_y=0,
+                            opacity=1.0,
+                            char_reveal=char_reveal
+                        )
+                
+                frames.append(self.canvas.get_image())
+        else:
+            # Parallel: animate all text elements together
+            for frame_idx in range(num_frames + 1):
+                progress = frame_idx / num_frames if num_frames > 0 else 1.0
+                
+                # Clear canvas
+                self.canvas.clear()
+                
+                for text_data in text_elements:
+                    text = text_data['text']
+                    total_chars = len(text)
+                    char_reveal = int(progress * total_chars)
+                    
+                    if char_reveal > 0:
+                        TextRenderer.draw_text(
+                            self.canvas, text_data,
+                            scale_x=scale_x, scale_y=scale_y,
+                            offset_x=0, offset_y=0,
+                            opacity=1.0,
+                            char_reveal=char_reveal
+                        )
+                
+                frames.append(self.canvas.get_image())
+        
+        return frames

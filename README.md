@@ -86,6 +86,91 @@ kivg.save_gif("animation.gif", fps=30)
 - **hand_scale** : *Scale factor for hand image*. Defaults to `0.15`
 - **hand_offset** : *Offset (x, y) from drawing point to position hand tip*. Defaults to `(-50, -120)`
 
+### Text Drawing and Animation
+
+Draw text directly on the canvas with full styling support:
+
+```python
+from kivg import Kivg
+
+kivg = Kivg(width=400, height=200, background=(255, 255, 255, 255))
+
+# Draw text directly
+kivg.draw_text(
+    "Hello World!",
+    x=50, y=80,
+    font_size=48,
+    font_weight='bold',
+    fill=(0, 0, 0, 255)
+)
+
+# Save the result
+kivg.save_image("text_output.png")
+```
+
+#### Animated Text (Character-by-Character Reveal)
+
+```python
+from kivg import Kivg
+
+kivg = Kivg(width=400, height=100, background=(255, 255, 255, 255))
+
+# Animate text with character-by-character reveal
+frames = kivg.draw_text(
+    "Hello World!",
+    x=50, y=60,
+    font_size=48,
+    font_weight='bold',
+    fill=(0, 0, 0, 255),
+    animate=True,
+    duration=2.0,
+    fps=30
+)
+
+# Save as video or GIF
+kivg.save_animation("text_animation.mp4", fps=30)
+```
+
+#### Drawing Text from SVG Files
+
+```python
+from kivg import Kivg
+
+kivg = Kivg(width=400, height=200, background=(255, 255, 255, 255))
+
+# Draw text elements from an SVG file
+kivg.draw_text_svg("text.svg", animate=False)
+kivg.save_image("svg_text.png")
+
+# Or with animation (sequential reveal of each text element)
+frames = kivg.draw_text_svg(
+    "text.svg",
+    animate=True,
+    duration=3.0,
+    fps=30,
+    anim_type='seq'  # 'seq' for sequential, 'par' for parallel
+)
+kivg.save_animation("svg_text_animation.mp4", fps=30)
+```
+
+#### Parameters for draw_text():
+- **text** : *The text string to draw*
+- **x, y** : *Position in pixels*
+- **font_family** : *Font family name*. Defaults to `'sans-serif'`
+- **font_size** : *Font size in pixels*. Defaults to `32`
+- **font_weight** : *Font weight ('normal', 'bold', or 100-900)*. Defaults to `'normal'`
+- **font_style** : *Font style ('normal', 'italic', 'oblique')*. Defaults to `'normal'`
+- **fill** : *Fill color as RGBA tuple or hex string*. Defaults to `(0, 0, 0, 255)`
+- **stroke** : *Stroke color as RGBA tuple or hex string*. Defaults to `None`
+- **stroke_width** : *Stroke width in pixels*. Defaults to `None`
+- **text_anchor** : *Text alignment ('start', 'middle', 'end')*. Defaults to `'start'`
+- **letter_spacing** : *Space between letters in pixels*. Defaults to `0`
+- **text_decoration** : *Decoration ('none', 'underline', 'line-through', 'overline')*. Defaults to `'none'`
+- **opacity** : *Opacity (0-1)*. Defaults to `1.0`
+- **animate** : *Whether to animate (character-by-character reveal)*. Defaults to `False`
+- **duration** : *Total animation duration in seconds*. Defaults to `1.0`
+- **fps** : *Frames per second for animation*. Defaults to `30`
+
 ### Hand Drawing Animation (Whiteboard Style)
 
 Create VideoScribe-style whiteboard animations with a hand that follows the stroke:
@@ -115,6 +200,7 @@ The hand follows the stroke during drawing and naturally disappears when the fil
 ### Important Notes:
 - Fill color only works if it's in hex format inside `<path>` tag
 - Gradient is not yet supported - defaults to `#ffffff` if can't parse color
+- Text rendering uses OpenCV's built-in fonts (limited font variety)
 
 #
 
@@ -136,7 +222,8 @@ kivg/
 │   └── easing.py       # Transition/easing functions
 ├── rendering/          # Rendering subsystem
 │   ├── path_renderer.py    # Path rendering
-│   └── shape_renderer.py   # Shape/polygon filling
+│   ├── shape_renderer.py   # Shape/polygon filling
+│   └── text_renderer.py    # Text rendering with animation
 ├── export/             # Export functionality
 │   ├── image.py        # PNG/JPG export
 │   ├── video.py        # MP4/AVI export
@@ -199,6 +286,15 @@ Few links that I found useful for modifying few svg files in order to work with 
     Useful for cleaning up and optimizing SVG files to ensure compatibility.
 
 ## Changelog
+
+**v2.2 (Text Drawing & Animation)**
+* Added text drawing support with `draw_text()` method
+* Added SVG text element parsing with `draw_text_svg()` method
+* Support for text properties: font-family, font-size, font-weight, font-style
+* Support for text styling: fill, stroke, stroke-width, opacity
+* Support for text layout: text-anchor, letter-spacing, text-decoration
+* Character-by-character animation for text reveal effect
+* Sequential and parallel animation modes for multiple text elements
 
 **v2.1 (Hand Drawing Animation)**
 * Added whiteboard-style hand drawing animation (VideoScribe-like)
