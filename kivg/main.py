@@ -220,13 +220,20 @@ class Kivg:
         
         num_frames = max(1, int(total_duration * fps))
         
+        # Store initial values for all animated properties
+        initial_values = {}
+        for anim in anim_list:
+            for key in anim.animated_properties:
+                if key not in initial_values:
+                    initial_values[key] = getattr(self.widget, key, 0)
+        
         # Generate frames by interpolating animation states
         for frame_idx in range(num_frames + 1):
             progress = frame_idx / num_frames if num_frames > 0 else 1.0
             current_time = progress * total_duration
             
             # Update animation properties for current time
-            self._update_animation_state(anim_list, current_time, anim_type)
+            self._update_animation_state(anim_list, current_time, anim_type, initial_values)
             
             # Clear and redraw
             self.canvas.clear()
@@ -248,30 +255,46 @@ class Kivg:
         return frames
 
     def _update_animation_state(self, anim_list: List[Animation], 
-                                current_time: float, anim_type: str) -> None:
-        """Update widget properties based on animation state at current time."""
+                                current_time: float, anim_type: str,
+                                initial_values: Dict[str, Any]) -> None:
+        """Update widget properties based on animation state at current time.
+        
+        Args:
+            anim_list: List of animations
+            current_time: Current time in the animation
+            anim_type: Animation type ("seq" or "par")
+            initial_values: Dictionary of initial property values
+        """
         if anim_type == "seq":
             # Sequential: run animations one after another
             elapsed = 0
+            # Track the end values of completed animations
+            completed_values = dict(initial_values)
+            
             for anim in anim_list:
-                if current_time >= elapsed and current_time < elapsed + anim.duration:
+                anim_end_time = elapsed + anim.duration
+                
+                if current_time < elapsed:
+                    # Animation hasn't started yet, use completed values
+                    break
+                elif current_time >= elapsed and current_time < anim_end_time:
                     # This animation is active
                     local_progress = (current_time - elapsed) / anim.duration if anim.duration > 0 else 1.0
                     local_progress = min(1.0, max(0.0, local_progress))
                     t = anim._transition(local_progress)
                     
                     for key, target in anim.animated_properties.items():
-                        start_val = getattr(self.widget, key, 0)
-                        # For initial state, we need the starting value
-                        # which should already be set on widget
+                        start_val = completed_values.get(key, initial_values.get(key, 0))
                         value = start_val + (target - start_val) * t
                         setattr(self.widget, key, value)
                     break
-                elif current_time >= elapsed + anim.duration:
-                    # Animation completed, set final values
+                else:
+                    # Animation completed, update completed values
                     for key, target in anim.animated_properties.items():
+                        completed_values[key] = target
                         setattr(self.widget, key, target)
-                elapsed += anim.duration
+                
+                elapsed = anim_end_time
         else:
             # Parallel: run all animations at once
             for anim in anim_list:
@@ -280,7 +303,7 @@ class Kivg:
                 t = anim._transition(progress)
                 
                 for key, target in anim.animated_properties.items():
-                    start_val = getattr(self.widget, key, 0)
+                    start_val = initial_values.get(key, 0)
                     value = start_val + (target - start_val) * t
                     setattr(self.widget, key, value)
 

@@ -48,8 +48,9 @@ class ShapeRenderer:
             List of (x, y) tuples
         """
         points = []
-        for i in range(0, len(flat_list) - 1, 2):
-            points.append((int(flat_list[i]), int(flat_list[i + 1])))
+        for i in range(0, len(flat_list), 2):
+            if i + 1 < len(flat_list):
+                points.append((int(flat_list[i]), int(flat_list[i + 1])))
         return points
     
     @staticmethod
