@@ -19,7 +19,7 @@ class HandOverlay:
     
     def __init__(self, hand_image_path: Optional[str] = None, 
                  scale: float = 0.30,
-                 offset: Tuple[int, int] = (-15, -140)):
+                 offset: Tuple[int, int] = (-35, -15)):
         """
         Initialize the hand overlay.
         

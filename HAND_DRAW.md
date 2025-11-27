@@ -38,7 +38,7 @@ frames = kivg.draw(
     # Personnalisation de la main:
     hand_image='path/to/hand.png',  # Image personnalisée (optionnel)
     hand_scale=0.30,                # Échelle de la main (0.2-0.5)
-    hand_offset=(-15, -140)         # Décalage (x, y) par rapport au trait
+    hand_offset=(-35, -15)         # Décalage (x, y) par rapport au trait
 )
 ```
 
@@ -49,7 +49,7 @@ frames = kivg.draw(
 | `hand_draw` | bool | `False` | Active/désactive la main |
 | `hand_image` | str | `None` | Chemin vers image PNG personnalisée |
 | `hand_scale` | float | `0.30` | Taille de la main (0.2 = petit, 0.5 = grand) |
-| `hand_offset` | tuple | `(-15, -140)` | Position (x, y) relative au trait - positionne la pointe du stylo |
+| `hand_offset` | tuple | `(-35, -15)` | Position (x, y) relative au trait - positionne la pointe du stylo |
 
 ## Exemples
 
@@ -124,15 +124,15 @@ La main est positionnée en fonction de:
 ```python
 # Tracés larges et rapides
 hand_scale=0.35
-hand_offset=(-18, -165)
+hand_offset=(-40, -18)
 
 # Tracés fins et détaillés
 hand_scale=0.25
-hand_offset=(-12, -115)
+hand_offset=(-29, -12)
 
 # Texte ou écriture (défaut)
 hand_scale=0.30
-hand_offset=(-15, -140)  # Défaut, pointe du stylo suit le trait
+hand_offset=(-35, -15)  # Défaut, pointe du stylo suit le trait
 ```
 
 ## Format de l'Image de Main
@@ -168,10 +168,10 @@ Si vous utilisez une image personnalisée (`hand_image`):
 Ajustez `hand_offset`:
 ```python
 # Main trop à droite → diminuer x
-hand_offset=(-25, -140)  # Plus à gauche
+hand_offset=(-45, -15)  # Plus à gauche
 
 # Main trop basse → diminuer y
-hand_offset=(-15, -160)  # Plus haut
+hand_offset=(-35, -25)  # Plus haut
 ```
 
 ### La main est trop grande/petite
@@ -236,6 +236,6 @@ kivg.draw(
     animate=True,
     hand_draw=True,
     hand_scale=0.35,
-    hand_offset=(-18, -155)
+    hand_offset=(-40, -18)
 )
 ```
