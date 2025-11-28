@@ -6,6 +6,51 @@
  */
 
 /**
+ * Normalize color to RGBA format with 0-255 range.
+ * Inline version to avoid circular dependencies.
+ * @param {number[]} color - Color as array (RGB or RGBA)
+ * @param {string} inputRange - 'auto' (detect), '0-1', or '0-255'
+ * @returns {number[]} RGBA array with values in 0-255 range
+ */
+function normalizeColorInline(color, inputRange = 'auto') {
+    if (!color || color.length < 3) {
+        return [0, 0, 0, 255];
+    }
+
+    let r = color[0];
+    let g = color[1];
+    let b = color[2];
+    let a = color.length > 3 ? color[3] : 1.0;
+
+    if (inputRange === 'auto') {
+        if (Math.max(r, g, b) <= 1.0) {
+            inputRange = '0-1';
+        } else {
+            inputRange = '0-255';
+        }
+    }
+
+    if (inputRange === '0-1') {
+        r = Math.floor(r * 255);
+        g = Math.floor(g * 255);
+        b = Math.floor(b * 255);
+        a = a <= 1.0 ? Math.floor(a * 255) : Math.floor(a);
+    } else {
+        r = Math.floor(r);
+        g = Math.floor(g);
+        b = Math.floor(b);
+        a = Math.floor(a);
+    }
+
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    a = Math.max(0, Math.min(255, a));
+
+    return [r, g, b, a];
+}
+
+/**
  * Canvas based on OpenCV.js to replace kivy.graphics.Canvas
  */
 class OpenCVCanvas {
@@ -40,8 +85,7 @@ class OpenCVCanvas {
      * @param {number} thickness - Line thickness
      */
     drawLine(start, end, color, thickness = 1) {
-        const { normalizeColor } = require('../utils/ColorUtils.js');
-        const rgba = normalizeColor(color, '0-255');
+        const rgba = normalizeColorInline(color, '0-255');
 
         // Handle alpha blending
         if (rgba[3] < 255) {
@@ -79,8 +123,7 @@ class OpenCVCanvas {
      * @param {boolean} closed - Whether to close the polyline
      */
     drawPolylines(points, color, thickness = 1, closed = false) {
-        const { normalizeColor } = require('../utils/ColorUtils.js');
-        const rgba = normalizeColor(color, '0-255');
+        const rgba = normalizeColorInline(color, '0-255');
 
         // Convert points to MatVector
         const flatPoints = points.flat();
@@ -140,8 +183,7 @@ class OpenCVCanvas {
      * @param {number[]} color - RGBA color (0-255 for each component)
      */
     fillPolygon(points, color) {
-        const { normalizeColor } = require('../utils/ColorUtils.js');
-        const rgba = normalizeColor(color, '0-255');
+        const rgba = normalizeColorInline(color, '0-255');
 
         // Convert points to MatVector
         const flatPoints = points.flat();
@@ -174,8 +216,7 @@ class OpenCVCanvas {
             return;
         }
 
-        const { normalizeColor } = require('../utils/ColorUtils.js');
-        const rgba = normalizeColor(color, '0-255');
+        const rgba = normalizeColorInline(color, '0-255');
 
         // Convert all contours to MatVector
         const pts = new cv.MatVector();

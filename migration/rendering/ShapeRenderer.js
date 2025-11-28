@@ -5,8 +5,6 @@
  * This is the JavaScript equivalent of kivg/rendering/shape_renderer.py
  */
 
-const { normalizeColor } = require('../utils/ColorUtils.js');
-
 /**
  * Handler for rendering filled shapes using OpenCV.js.
  */

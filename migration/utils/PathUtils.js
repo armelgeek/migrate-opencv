@@ -145,9 +145,10 @@ function getAllPoints(start, control1, control2, end, segments = 100) {
  * @returns {number} The center value or average of the two middle values
  */
 function findCenter(sortedList) {
-    const middle = sortedList.length / 2;
-    if (middle % 2 !== 0) {
-        return sortedList[Math.floor(middle - 0.5)];
+    const length = sortedList.length;
+    const middle = length / 2;
+    if (length % 2 !== 0) {
+        return sortedList[Math.floor(middle)];
     } else {
         return (sortedList[Math.floor(middle)] + sortedList[Math.floor(middle - 1)]) / 2;
     }
