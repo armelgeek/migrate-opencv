@@ -170,6 +170,53 @@ kivg.save_animation("svg_text_animation.mp4", fps=30)
 - **animate** : *Whether to animate (character-by-character reveal)*. Defaults to `False`
 - **duration** : *Total animation duration in seconds*. Defaults to `1.0`
 - **fps** : *Frames per second for animation*. Defaults to `30`
+- **hand_draw** : *Whether to show a hand writing the text (whiteboard style)*. Defaults to `False`
+- **hand_image** : *Path to custom hand image (PNG file with transparency support)*. Defaults to built-in hand
+- **hand_scale** : *Scale factor for hand image*. Defaults to `0.30`
+- **hand_offset** : *Offset (x, y) from drawing point to position hand tip*. Defaults to `(-15, -140)`
+
+#### Hand Drawing for Text Animation
+
+Create handwriting-style animations where a hand follows each character as it's revealed:
+
+```python
+from kivg import Kivg
+
+kivg = Kivg(width=400, height=100, background=(255, 255, 255, 255))
+
+# Animate text with hand drawing effect
+frames = kivg.draw_text(
+    "Hello World!",
+    x=50, y=60,
+    font_size=48,
+    font_weight='bold',
+    fill=(0, 0, 0, 255),
+    animate=True,
+    duration=2.0,
+    fps=30,
+    hand_draw=True,           # Enable hand drawing
+    hand_scale=0.25,          # Adjust hand size
+    hand_offset=(-20, -100)   # Position hand tip relative to text
+)
+
+# Save as GIF or video
+kivg.save_gif("handwritten_text.gif", fps=30)
+```
+
+Hand drawing also works with `draw_text_svg()`:
+
+```python
+frames = kivg.draw_text_svg(
+    "text.svg",
+    animate=True,
+    duration=3.0,
+    fps=30,
+    anim_type='seq',
+    hand_draw=True,
+    hand_scale=0.25
+)
+kivg.save_animation("handwritten_svg_text.mp4", fps=30)
+```
 
 ### Hand Drawing Animation (Whiteboard Style)
 
