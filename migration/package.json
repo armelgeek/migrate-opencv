@@ -1,0 +1,35 @@
+{
+  "name": "kivg-js",
+  "version": "1.0.0",
+  "description": "SVG drawing and animation using OpenCV.js - JavaScript port of the Python Kivg library",
+  "main": "index.js",
+  "browser": "index.js",
+  "scripts": {
+    "test": "echo \"Tests require OpenCV.js to be loaded in browser environment\""
+  },
+  "keywords": [
+    "svg",
+    "animation",
+    "opencv",
+    "opencvjs",
+    "drawing",
+    "canvas",
+    "render",
+    "graphics",
+    "vector"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/armelgeek/migrate-opencv"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "peerDependencies": {
+    "opencv.js": "*"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
